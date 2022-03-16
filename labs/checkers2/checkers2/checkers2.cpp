@@ -112,7 +112,7 @@ void MakeMove(Move& move, Point& startPoint, Board& board, CaptureVec& captureVe
 			return;
 		}
 	}
-	// TODO нужно ли проверять то, что мы срубили на этой диагонали до этого
+	// TODO do we need to check what we have cut down on this diagonal before or not 
 	if (startPoint.x < MAX_POS - 2 && startPoint.y < MAX_POS - 2)
 	{
 		Move move = { 1, -1 };
