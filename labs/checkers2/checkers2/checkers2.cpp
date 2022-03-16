@@ -9,14 +9,14 @@
 constexpr short BLANK = '0';
 constexpr short CHECKER_BLACK = '1';
 constexpr short CHECKER_WHITE = '2';
-constexpr size_t MIN_POS = 0;
+constexpr size_t MIN_POS = 1;
 constexpr size_t MAX_POS = 8;
 const std::string outputFileName = "OUTPUT.TXT";
 
 struct Move
 {
-	short dx;
-	short dy;
+	int dx;
+	int dy;
 
 	Move(short dx = 0, short dy = 0)
 		: dx(dx), dy(dy)
@@ -36,8 +36,8 @@ struct Move
 
 struct Point
 {
-	size_t x;
-	size_t y;
+	size_t x = 0;
+	size_t y = 0;
 
 	bool operator == (const Point& point) const
 	{
@@ -56,8 +56,14 @@ struct Capture
 	}
 };
 
+struct BoardCell
+{
+	char figure = BLANK;
+	bool captured = false;
+};
+
 typedef std::vector<Capture> CaptureVec;
-typedef std::array<std::array<char, MAX_POS>, MAX_POS> Board;
+typedef std::array<std::array<BoardCell, MAX_POS>, MAX_POS> Board;
 
 Point FillBoard(std::ifstream& inputFile, Board& board)
 {
@@ -69,11 +75,12 @@ Point FillBoard(std::ifstream& inputFile, Board& board)
 
 		for (size_t col = 0; col < MAX_POS; ++col)
 		{
-			board[row][col] = line[col];
+			board[row][col].figure = line[col];
 
 			if (line[col] == CHECKER_WHITE)
 			{
 				startPoint = { row, col };
+				board[row][col].figure = BLANK;
 			}
 		}
 	}
@@ -96,51 +103,86 @@ bool ValidateFile(const std::ifstream& inputFile)
 template<typename T>
 bool InRange(T value, T min, T max)
 {
-	return value > min && value < max;
+	return value >= min && value <= max;
 }
 
-void MakeMove(Move& move, Point& startPoint, Board& board, CaptureVec captureVec)
+void MakeMove(const Move& move, Point& startPoint, Board& board, CaptureVec& captureVec)
 {
 	Point currPoint = { startPoint.x + move.dx, startPoint.y + move.dy };
-	if (board[currPoint.x][currPoint.y] == CHECKER_WHITE)
+	Move unitMove(move.dx / abs(move.dx), move.dy / abs(move.dy));
+	if (board[currPoint.x][currPoint.y].figure == CHECKER_BLACK)
 	{
-		Move captureMove(move.dx / abs(move.dx), move.dy / abs(move.dy));
-		if (InRange(currPoint.x + captureMove.dx, MIN_POS, MAX_POS - 1) && 
-			InRange(currPoint.y + captureMove.dy, MIN_POS, MAX_POS - 1))
+		board[currPoint.x][currPoint.y].captured = true;
+		if (InRange(currPoint.x + unitMove.dx, MIN_POS - 1, MAX_POS - 1) &&
+			InRange(currPoint.y + unitMove.dy, MIN_POS - 1, MAX_POS - 1))
 		{
-			Move nextMove = captureMove + move;
-			MakeMove(nextMove, startPoint, board, captureVec);
 			captureVec.push_back(Capture(startPoint, currPoint));
-		}
-		else
-		{
-			return;
 		}
 	}
 	Move nextMove = { 0, 0 };
 	if (startPoint.x < MAX_POS - 2 && startPoint.y < MAX_POS - 2)
 	{
-		CaptureVec captureVecDR = captureVec;
 		nextMove = { 1, 1 };
-		MakeMove(move, currPoint, board, captureVecDR);
+		if (unitMove == nextMove)
+		{
+			if (captureVec.at(captureVec.size() - 1).whitePos == startPoint)
+			{
+				if (board[currPoint.x][currPoint.y].figure == CHECKER_BLACK)
+				{
+					Point currPoint = { currPoint.x + nextMove.dx, currPoint.y + nextMove.dy };
+					MakeMove({ 0, 0 }, currPoint, board, captureVec);
+
+				}
+				else
+				{
+					MakeMove({ 0, 0 }, currPoint, board, captureVec);
+				}
+			}
+			else
+			{
+				MakeMove(move + unitMove, startPoint, board, captureVec);
+			}
+		}
+		else
+		{
+			MakeMove(nextMove, startPoint, board, captureVec);
+		}
 	}
 	if (startPoint.x > MIN_POS && startPoint.y > MIN_POS)
 	{
-		CaptureVec captureVecUL = captureVec;
 		nextMove = { -1, -1 };
-		MakeMove(move, currPoint, board, captureVecUL);
+		if (unitMove == nextMove)
+		{
+			MakeMove(move + unitMove, startPoint, board, captureVec);
+		}
+		else
+		{
+			MakeMove(nextMove, startPoint, board, captureVec);
+		}
 	}
 	if (startPoint.x < MAX_POS - 2 && startPoint.y > MIN_POS)
 	{
-		CaptureVec captureVecDL = captureVec;
 		nextMove = { 1, -1 };
-		MakeMove(move, currPoint, board, captureVecDL);
+		if (unitMove == nextMove)
+		{
+			MakeMove(move + unitMove, startPoint, board, captureVec);
+		}
+		else
+		{
+			MakeMove(nextMove, startPoint, board, captureVec);
+		}
 	}
 	if (startPoint.x > MIN_POS && startPoint.y < MAX_POS - 2)
 	{
-		CaptureVec captureVecUR = captureVec;
 		nextMove = { -1, 1 };
-		MakeMove(move, currPoint, board, captureVecUR);
+		if (unitMove == nextMove)
+		{
+			MakeMove(move + unitMove, startPoint, board, captureVec);
+		}
+		else
+		{
+			MakeMove(nextMove, startPoint, board, captureVec);
+		}
 	}
 	if (nextMove.dx == 0 || nextMove.dy == 0)
 	{
