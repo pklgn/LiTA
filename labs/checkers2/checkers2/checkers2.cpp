@@ -23,9 +23,14 @@ struct Move
 	{
 	}
 
-	Move operator+(const Move& m) const
+	Move operator + (const Move& m) const
 	{
 		return Move(m.dx + this->dx, m.dy + this->dy);
+	}
+
+	bool operator == (const Move& move) const
+	{
+		return this->dx == move.dx && this->dy == move.dy;
 	}
 };
 
@@ -34,7 +39,7 @@ struct Point
 	size_t x;
 	size_t y;
 
-	bool operator==(const Point& point) const
+	bool operator == (const Point& point) const
 	{
 		return this->x == point.x && this->y == point.y;
 	}
@@ -94,7 +99,7 @@ bool InRange(T value, T min, T max)
 	return value > min && value < max;
 }
 
-void MakeMove(Move& move, Point& startPoint, Board& board, CaptureVec& captureVec)
+void MakeMove(Move& move, Point& startPoint, Board& board, CaptureVec captureVec)
 {
 	Point currPoint = { startPoint.x + move.dx, startPoint.y + move.dy };
 	if (board[currPoint.x][currPoint.y] == CHECKER_WHITE)
@@ -112,11 +117,34 @@ void MakeMove(Move& move, Point& startPoint, Board& board, CaptureVec& captureVe
 			return;
 		}
 	}
-	// TODO do we need to check what we have cut down on this diagonal before or not 
+	Move nextMove = { 0, 0 };
 	if (startPoint.x < MAX_POS - 2 && startPoint.y < MAX_POS - 2)
 	{
-		Move move = { 1, -1 };
-		MakeMove(move, currPoint, board, captureVec); 
+		CaptureVec captureVecDR = captureVec;
+		nextMove = { 1, 1 };
+		MakeMove(move, currPoint, board, captureVecDR);
+	}
+	if (startPoint.x > MIN_POS && startPoint.y > MIN_POS)
+	{
+		CaptureVec captureVecUL = captureVec;
+		nextMove = { -1, -1 };
+		MakeMove(move, currPoint, board, captureVecUL);
+	}
+	if (startPoint.x < MAX_POS - 2 && startPoint.y > MIN_POS)
+	{
+		CaptureVec captureVecDL = captureVec;
+		nextMove = { 1, -1 };
+		MakeMove(move, currPoint, board, captureVecDL);
+	}
+	if (startPoint.x > MIN_POS && startPoint.y < MAX_POS - 2)
+	{
+		CaptureVec captureVecUR = captureVec;
+		nextMove = { -1, 1 };
+		MakeMove(move, currPoint, board, captureVecUR);
+	}
+	if (nextMove.dx == 0 || nextMove.dy == 0)
+	{
+		return;
 	}
 }
 
