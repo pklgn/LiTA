@@ -118,7 +118,7 @@ bool InRange(T value, T min, T max)
 {
 	return value >= min && value <= max;
 }
-void MakeMove(const Move& move, const Move& moveDirect, Point& startPoint, Board& board, CaptureVec& captureVec);
+CaptureVec MakeMove(const Move& move, const Move& moveDirect, Point& startPoint, Board& board, CaptureVec& captureVec);
 CaptureVec MakeCapture(const Move& prevMoveDirect, Point& startPoint, Board board, CaptureVec captureVec)
 {
 	CaptureVec result;
@@ -178,20 +178,31 @@ CaptureVec MakeCapture(const Move& prevMoveDirect, Point& startPoint, Board boar
 	return result;
 }
 
-void MakeMove(const Move& move, const Move& moveDirect, Point& startPoint, Board& board, CaptureVec& captureVec)
+CaptureVec MakeMove(const Move& move, const Move& moveDirect, Point& startPoint, Board& board, CaptureVec& captureVec)
 {
 	Point currPoint = { startPoint.x + move.dx, startPoint.y + move.dy };
-	if (board[startPoint.x + move.dx][startPoint.y + move.dy].figure == CHECKER_BLACK)
+	if (board[currPoint.x][currPoint.y].figure == CHECKER_BLACK && 
+		board[currPoint.x + moveDirect.dx][currPoint.y + moveDirect.dy].figure != CHECKER_BLACK)
 	{
 		Capture capture = { startPoint, currPoint };
 		captureVec.push_back(capture);
 		board[currPoint.x][currPoint.y].figure = BLANK;
-		Point nextPoint = { currPoint.x + moveDirect.dx, currPoint.y + moveDirect.dy };
-		MakeCapture(moveDirect, nextPoint, board, captureVec);
+		for (; InRange(currPoint.x, MIN_POS - 1, MAX_POS - 1); currPoint.x += moveDirect.dx)
+		{
+			for (; InRange(currPoint.y, MIN_POS, MAX_POS - 2); currPoint.y += moveDirect.dy)
+			{
+				Point nextPoint = { currPoint.x + moveDirect.dx, currPoint.y + moveDirect.dy };
+				CaptureVec result = MakeCapture(moveDirect, nextPoint, board, captureVec);
+
+				return result;
+			}
+		}
+		
 	}
 	else
 	{
-		if (InRange(currPoint.x, MIN_POS, MAX_POS - 2) && InRange(currPoint.y, MIN_POS, MAX_POS - 2))
+		if (InRange(currPoint.x, MIN_POS, MAX_POS - 2) && InRange(currPoint.y, MIN_POS - 1, MAX_POS - 1) &&
+			board[currPoint.x + moveDirect.dx][currPoint.y + moveDirect.dy].figure != CHECKER_BLACK)
 		{
 			MakeMove(move + moveDirect, moveDirect, startPoint, board, captureVec);
 		}
