@@ -5,36 +5,48 @@
 #include <fstream>
 #include <array>
 #include <vector>
+#include <cmath>
 
 constexpr short BLANK = '0';
 constexpr short CHECKER_BLACK = '1';
 constexpr short CHECKER_WHITE = '2';
-constexpr size_t MIN_POS = 0;
+constexpr size_t MIN_POS = 1;
 constexpr size_t MAX_POS = 8;
 const std::string outputFileName = "OUTPUT.TXT";
 
 struct Move
 {
-	short dx;
-	short dy;
+	int dx;
+	int dy;
 
-	Move(short dx = 0, short dy = 0)
+	Move(int dx = 0, int dy = 0)
 		: dx(dx), dy(dy)
 	{
 	}
 
-	Move operator+(const Move& m) const
+	Move operator + (const Move& m) const
 	{
 		return Move(m.dx + this->dx, m.dy + this->dy);
 	}
+
+	bool operator == (const Move& move) const
+	{
+		return this->dx == move.dx && this->dy == move.dy;
+	}
 };
+
+const Move OFFSET_DR = { 1, 1 };
+const Move OFFSET_DL = { 1, -1 };
+const Move OFFSET_UR = { -1, 1 };
+const Move OFFSET_UL = { -1, -1 };
+const Move NO_MOVE = { 0, 0 };
 
 struct Point
 {
-	size_t x;
-	size_t y;
+	size_t x = 0;
+	size_t y = 0;
 
-	bool operator==(const Point& point) const
+	bool operator == (const Point& point) const
 	{
 		return this->x == point.x && this->y == point.y;
 	}
@@ -51,8 +63,20 @@ struct Capture
 	}
 };
 
+struct BoardCell
+{
+	char figure = BLANK;
+	bool captured = false;
+};
+
+struct MoveNode {
+	struct Move move;
+	struct MoveNode* firstchild;
+	struct MoveNode* nextsibling;
+};
+
 typedef std::vector<Capture> CaptureVec;
-typedef std::array<std::array<char, MAX_POS>, MAX_POS> Board;
+typedef std::array<std::array<BoardCell, MAX_POS>, MAX_POS> Board;
 
 Point FillBoard(std::ifstream& inputFile, Board& board)
 {
@@ -64,11 +88,12 @@ Point FillBoard(std::ifstream& inputFile, Board& board)
 
 		for (size_t col = 0; col < MAX_POS; ++col)
 		{
-			board[row][col] = line[col];
+			board[row][col].figure = line[col];
 
 			if (line[col] == CHECKER_WHITE)
 			{
 				startPoint = { row, col };
+				board[row][col].figure = BLANK;
 			}
 		}
 	}
@@ -91,33 +116,100 @@ bool ValidateFile(const std::ifstream& inputFile)
 template<typename T>
 bool InRange(T value, T min, T max)
 {
-	return value > min && value < max;
+	return value >= min && value <= max;
+}
+CaptureVec MakeMove(const Move& move, const Move& moveDirect, Point& startPoint, Board& board, CaptureVec& captureVec);
+CaptureVec MakeCapture(const Move& prevMoveDirect, Point& startPoint, Board board, CaptureVec captureVec)
+{
+	CaptureVec interResult;
+	CaptureVec result;
+	if (startPoint.x < MAX_POS - 1 && startPoint.y < MAX_POS - 1)
+	{
+		if (prevMoveDirect.dx != -OFFSET_DR.dx || prevMoveDirect.dy != -OFFSET_DR.dy)
+		{
+			Board boardDR = board;
+			CaptureVec captureVecDR = captureVec;
+			interResult = MakeMove(OFFSET_DR, OFFSET_DR, startPoint, boardDR, captureVecDR);
+			if (interResult.size() > captureVec.size())
+			{
+				result = interResult;
+			}
+		}
+	}
+	if (startPoint.x > MIN_POS - 1 && startPoint.y > MIN_POS - 1)
+	{
+		if (prevMoveDirect.dx != -OFFSET_UL.dx || prevMoveDirect.dy != -OFFSET_UL.dy)
+		{
+			Board boardUL = board;
+			CaptureVec captureVecUL = captureVec;
+			interResult = MakeMove(OFFSET_UL, OFFSET_UL, startPoint, boardUL, captureVecUL);
+			if (interResult.size() > captureVec.size())
+			{
+				result = interResult;
+			}
+		}
+	}
+	if (startPoint.x < MAX_POS - 1 && startPoint.y > MIN_POS - 1)
+	{
+		if (prevMoveDirect.dx != -OFFSET_DL.dx || prevMoveDirect.dy != -OFFSET_DL.dy)
+		{
+			Board boardDL = board;
+			CaptureVec captureVecDL = captureVec;
+			interResult = MakeMove(OFFSET_DL, OFFSET_DL, startPoint, boardDL, captureVecDL);
+			if (interResult.size() > captureVec.size())
+			{
+				result = interResult;
+			}
+		}
+	}
+	if (startPoint.x > MIN_POS - 1 && startPoint.y < MAX_POS - 1)
+	{
+		if (prevMoveDirect.dx != -OFFSET_UR.dx || prevMoveDirect.dy != -OFFSET_UR.dy)
+		{
+			Board boardUR = board;
+			CaptureVec captureVecUR = captureVec;
+			interResult = MakeMove(OFFSET_UR, OFFSET_UR, startPoint, boardUR, captureVecUR);
+			if (interResult.size() > captureVec.size())
+			{
+				result = interResult;
+			}
+		}
+	}
+
+	return result;
 }
 
-void MakeMove(Move& move, Point& startPoint, Board& board, CaptureVec& captureVec)
+CaptureVec MakeMove(const Move& move, const Move& moveDirect, Point& startPoint, Board& board, CaptureVec& captureVec)
 {
 	Point currPoint = { startPoint.x + move.dx, startPoint.y + move.dy };
-	if (board[currPoint.x][currPoint.y] == CHECKER_WHITE)
+	if (board[currPoint.x][currPoint.y].figure == CHECKER_BLACK && 
+		board[currPoint.x + moveDirect.dx][currPoint.y + moveDirect.dy].figure != CHECKER_BLACK)
 	{
-		Move captureMove(move.dx / abs(move.dx), move.dy / abs(move.dy));
-		if (InRange(currPoint.x + captureMove.dx, MIN_POS, MAX_POS - 1) && 
-			InRange(currPoint.y + captureMove.dy, MIN_POS, MAX_POS - 1))
+		Capture capture = { startPoint, currPoint };
+		captureVec.push_back(capture);
+		board[currPoint.x][currPoint.y].figure = BLANK;
+		for (; InRange(currPoint.x, MIN_POS - 1, MAX_POS - 1); currPoint.x += moveDirect.dx)
 		{
-			Move nextMove = captureMove + move;
-			MakeMove(nextMove, startPoint, board, captureVec);
-			captureVec.push_back(Capture(startPoint, currPoint));
+			for (; InRange(currPoint.y, MIN_POS - 1, MAX_POS - 1); currPoint.y += moveDirect.dy)
+			{
+				Point nextPoint = { currPoint.x + moveDirect.dx, currPoint.y + moveDirect.dy };
+				CaptureVec result = MakeCapture(moveDirect, nextPoint, board, captureVec);
+
+				return result;
+			}
 		}
-		else
+		
+	}
+	else
+	{
+		if (InRange(currPoint.x, MIN_POS, MAX_POS - 2) && InRange(currPoint.y, MIN_POS - 1, MAX_POS - 1) &&
+			board[currPoint.x + moveDirect.dx][currPoint.y + moveDirect.dy].figure != CHECKER_BLACK)
 		{
-			return;
+			MakeMove(move + moveDirect, moveDirect, startPoint, board, captureVec);
 		}
 	}
-	// TODO do we need to check what we have cut down on this diagonal before or not 
-	if (startPoint.x < MAX_POS - 2 && startPoint.y < MAX_POS - 2)
-	{
-		Move move = { 1, -1 };
-		MakeMove(move, currPoint, board, captureVec); 
-	}
+
+	return captureVec;
 }
 
 int main(int argc, char* argv[])
@@ -131,5 +223,10 @@ int main(int argc, char* argv[])
 	Board board;
 	Point startPoint = FillBoard(inputFile, board);
 	CaptureVec captureVec;
+	CaptureVec resultVec = MakeCapture(NO_MOVE, startPoint, board, captureVec);
+	for (size_t i = 0; i < resultVec.size(); i++)
+	{
+		std::cout << "whitePos " << resultVec.at(i).whitePos.x << " " << resultVec.at(i).whitePos.y << std::endl;
+	}
 	return 0;
 }
