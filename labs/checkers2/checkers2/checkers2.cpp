@@ -121,6 +121,7 @@ bool InRange(T value, T min, T max)
 CaptureVec MakeMove(const Move& move, const Move& moveDirect, Point& startPoint, Board& board, CaptureVec& captureVec);
 CaptureVec MakeCapture(const Move& prevMoveDirect, Point& startPoint, Board board, CaptureVec captureVec)
 {
+	CaptureVec interResult;
 	CaptureVec result;
 	if (startPoint.x < MAX_POS - 1 && startPoint.y < MAX_POS - 1)
 	{
@@ -128,10 +129,10 @@ CaptureVec MakeCapture(const Move& prevMoveDirect, Point& startPoint, Board boar
 		{
 			Board boardDR = board;
 			CaptureVec captureVecDR = captureVec;
-			MakeMove(OFFSET_DR, OFFSET_DR, startPoint, boardDR, captureVecDR);
-			if (captureVecDR.size() > captureVec.size())
+			interResult = MakeMove(OFFSET_DR, OFFSET_DR, startPoint, boardDR, captureVecDR);
+			if (interResult.size() > captureVec.size())
 			{
-				result = captureVecDR;
+				result = interResult;
 			}
 		}
 	}
@@ -141,10 +142,10 @@ CaptureVec MakeCapture(const Move& prevMoveDirect, Point& startPoint, Board boar
 		{
 			Board boardUL = board;
 			CaptureVec captureVecUL = captureVec;
-			MakeMove(OFFSET_UL, OFFSET_UL, startPoint, boardUL, captureVecUL);
-			if (captureVecUL.size() > captureVec.size())
+			interResult = MakeMove(OFFSET_UL, OFFSET_UL, startPoint, boardUL, captureVecUL);
+			if (interResult.size() > captureVec.size())
 			{
-				result = captureVecUL;
+				result = interResult;
 			}
 		}
 	}
@@ -154,10 +155,10 @@ CaptureVec MakeCapture(const Move& prevMoveDirect, Point& startPoint, Board boar
 		{
 			Board boardDL = board;
 			CaptureVec captureVecDL = captureVec;
-			MakeMove(OFFSET_DL, OFFSET_DL, startPoint, boardDL, captureVecDL);
-			if (captureVecDL.size() > captureVec.size())
+			interResult = MakeMove(OFFSET_DL, OFFSET_DL, startPoint, boardDL, captureVecDL);
+			if (interResult.size() > captureVec.size())
 			{
-				result = captureVecDL;
+				result = interResult;
 			}
 		}
 	}
@@ -167,10 +168,10 @@ CaptureVec MakeCapture(const Move& prevMoveDirect, Point& startPoint, Board boar
 		{
 			Board boardUR = board;
 			CaptureVec captureVecUR = captureVec;
-			MakeMove(OFFSET_UR, OFFSET_UR, startPoint, boardUR, captureVecUR);
-			if (captureVecUR.size() > captureVec.size())
+			interResult = MakeMove(OFFSET_UR, OFFSET_UR, startPoint, boardUR, captureVecUR);
+			if (interResult.size() > captureVec.size())
 			{
-				result = captureVecUR;
+				result = interResult;
 			}
 		}
 	}
@@ -189,7 +190,7 @@ CaptureVec MakeMove(const Move& move, const Move& moveDirect, Point& startPoint,
 		board[currPoint.x][currPoint.y].figure = BLANK;
 		for (; InRange(currPoint.x, MIN_POS - 1, MAX_POS - 1); currPoint.x += moveDirect.dx)
 		{
-			for (; InRange(currPoint.y, MIN_POS, MAX_POS - 2); currPoint.y += moveDirect.dy)
+			for (; InRange(currPoint.y, MIN_POS - 1, MAX_POS - 1); currPoint.y += moveDirect.dy)
 			{
 				Point nextPoint = { currPoint.x + moveDirect.dx, currPoint.y + moveDirect.dy };
 				CaptureVec result = MakeCapture(moveDirect, nextPoint, board, captureVec);
@@ -207,6 +208,8 @@ CaptureVec MakeMove(const Move& move, const Move& moveDirect, Point& startPoint,
 			MakeMove(move + moveDirect, moveDirect, startPoint, board, captureVec);
 		}
 	}
+
+	return captureVec;
 }
 
 int main(int argc, char* argv[])
