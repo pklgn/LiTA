@@ -5,6 +5,7 @@
 #include <fstream>
 #include <array>
 #include <vector>
+#include <cmath>
 
 constexpr short BLANK = '0';
 constexpr short CHECKER_BLACK = '1';
@@ -18,7 +19,7 @@ struct Move
 	int dx;
 	int dy;
 
-	Move(short dx = 0, short dy = 0)
+	Move(int dx = 0, int dy = 0)
 		: dx(dx), dy(dy)
 	{
 	}
@@ -106,86 +107,166 @@ bool InRange(T value, T min, T max)
 	return value >= min && value <= max;
 }
 
-void MakeMove(const Move& move, Point& startPoint, Board& board, CaptureVec& captureVec)
+void MakeMove(const Move& move, Point& startPoint, Board& board, CaptureVec& captureVec, CaptureVec& resultVec)
 {
-	Point currPoint = { startPoint.x + move.dx, startPoint.y + move.dy };
-	Move unitMove(move.dx / abs(move.dx), move.dy / abs(move.dy));
+ 	Point currPoint = { startPoint.x + move.dx, startPoint.y + move.dy };
+	Move unitMove;
+	if (move.dx == 0)
+	{
+		unitMove = move;
+	}
+	else
+	{
+		int dx = move.dx / std::abs(move.dx);
+		int dy = move.dy / std::abs(move.dy);
+		unitMove = Move(dx, dy);
+	}
 	if (board[currPoint.x][currPoint.y].figure == CHECKER_BLACK)
 	{
-		board[currPoint.x][currPoint.y].captured = true;
-		if (InRange(currPoint.x + unitMove.dx, MIN_POS - 1, MAX_POS - 1) &&
-			InRange(currPoint.y + unitMove.dy, MIN_POS - 1, MAX_POS - 1))
+		if (InRange(currPoint.x + unitMove.dx, MIN_POS, MAX_POS - 2) &&
+			InRange(currPoint.y + unitMove.dy, MIN_POS, MAX_POS - 2))
 		{
+			board[currPoint.x][currPoint.y].captured = true;
+			board[currPoint.x][currPoint.y].figure = BLANK;
 			captureVec.push_back(Capture(startPoint, currPoint));
+		}
+		else
+		{
+			return;
 		}
 	}
 	Move nextMove = { 0, 0 };
-	if (startPoint.x < MAX_POS - 2 && startPoint.y < MAX_POS - 2)
+	if (currPoint.x < MAX_POS - 1 && currPoint.y < MAX_POS - 1)
 	{
 		nextMove = { 1, 1 };
-		if (unitMove == nextMove)
+		if (nextMove.dx != -unitMove.dx || nextMove.dy != -unitMove.dy)
 		{
-			if (captureVec.at(captureVec.size() - 1).whitePos == startPoint)
+			if (unitMove == nextMove)
 			{
-				if (board[currPoint.x][currPoint.y].figure == CHECKER_BLACK)
+				if (captureVec.at(captureVec.size() - 1).whitePos == startPoint)
 				{
-					Point currPoint = { currPoint.x + nextMove.dx, currPoint.y + nextMove.dy };
-					MakeMove({ 0, 0 }, currPoint, board, captureVec);
+					if (board[currPoint.x][currPoint.y].figure == CHECKER_BLACK)
+					{
+						Point nextPoint = { currPoint.x + nextMove.dx, currPoint.y + nextMove.dy };
+						MakeMove({ 0, 0 }, nextPoint, board, captureVec, resultVec);
 
+					}
+					else
+					{
+						MakeMove({ 0, 0 }, currPoint, board, captureVec, resultVec);
+					}
 				}
 				else
 				{
-					MakeMove({ 0, 0 }, currPoint, board, captureVec);
+					MakeMove(move + unitMove, startPoint, board, captureVec, resultVec);
 				}
 			}
 			else
 			{
-				MakeMove(move + unitMove, startPoint, board, captureVec);
+				MakeMove(nextMove, currPoint, board, captureVec, resultVec);
 			}
 		}
-		else
-		{
-			MakeMove(nextMove, startPoint, board, captureVec);
-		}
 	}
-	if (startPoint.x > MIN_POS && startPoint.y > MIN_POS)
+	if (currPoint.x > MIN_POS - 1 && currPoint.y > MIN_POS - 1)
 	{
 		nextMove = { -1, -1 };
-		if (unitMove == nextMove)
+		if (nextMove.dx != -unitMove.dx || nextMove.dy != -unitMove.dy)
 		{
-			MakeMove(move + unitMove, startPoint, board, captureVec);
-		}
-		else
-		{
-			MakeMove(nextMove, startPoint, board, captureVec);
+			if (unitMove == nextMove)
+			{
+				if (captureVec.at(captureVec.size() - 1).whitePos == startPoint)
+				{
+					if (board[currPoint.x][currPoint.y].figure == CHECKER_BLACK)
+					{
+						Point nextPoint = { currPoint.x + nextMove.dx, currPoint.y + nextMove.dy };
+						MakeMove({ 0, 0 }, nextPoint, board, captureVec, resultVec);
+
+					}
+					else
+					{
+						MakeMove({ 0, 0 }, currPoint, board, captureVec, resultVec);
+					}
+				}
+				else
+				{
+					MakeMove(move + unitMove, startPoint, board, captureVec, resultVec);
+				}
+			}
+			else
+			{
+				MakeMove(nextMove, currPoint, board, captureVec, resultVec);
+			}
 		}
 	}
-	if (startPoint.x < MAX_POS - 2 && startPoint.y > MIN_POS)
+	if (currPoint.x < MAX_POS - 1 && currPoint.y > MIN_POS - 1)
 	{
 		nextMove = { 1, -1 };
-		if (unitMove == nextMove)
+		if (nextMove.dx != -unitMove.dx || nextMove.dy != -unitMove.dy)
 		{
-			MakeMove(move + unitMove, startPoint, board, captureVec);
-		}
-		else
-		{
-			MakeMove(nextMove, startPoint, board, captureVec);
+			if (unitMove == nextMove)
+			{
+				if (captureVec.at(captureVec.size() - 1).whitePos == startPoint)
+				{
+					if (board[currPoint.x][currPoint.y].figure == CHECKER_BLACK)
+					{
+						Point nextPoint = { currPoint.x + nextMove.dx, currPoint.y + nextMove.dy };
+						MakeMove({ 0, 0 }, nextPoint, board, captureVec, resultVec);
+
+					}
+					else
+					{
+						MakeMove({ 0, 0 }, currPoint, board, captureVec, resultVec);
+					}
+				}
+				else
+				{
+					MakeMove(move + unitMove, startPoint, board, captureVec, resultVec);
+				}
+			}
+			else
+			{
+				MakeMove(nextMove, currPoint, board, captureVec, resultVec);
+			}
 		}
 	}
-	if (startPoint.x > MIN_POS && startPoint.y < MAX_POS - 2)
+	if (currPoint.x > MIN_POS - 1 && currPoint.y < MAX_POS - 1)
 	{
 		nextMove = { -1, 1 };
-		if (unitMove == nextMove)
+		if (nextMove.dx != -unitMove.dx || nextMove.dy != -unitMove.dy)
 		{
-			MakeMove(move + unitMove, startPoint, board, captureVec);
-		}
-		else
-		{
-			MakeMove(nextMove, startPoint, board, captureVec);
+			if (unitMove == nextMove)
+			{
+				if (captureVec.at(captureVec.size() - 1).whitePos == startPoint)
+				{
+					if (board[currPoint.x][currPoint.y].figure == CHECKER_BLACK)
+					{
+						Point nextPoint = { currPoint.x + nextMove.dx, currPoint.y + nextMove.dy };
+						MakeMove({ 0, 0 }, nextPoint, board, captureVec, resultVec);
+
+					}
+					else
+					{
+						MakeMove({ 0, 0 }, currPoint, board, captureVec, resultVec);
+					}
+				}
+				else
+				{
+					MakeMove(move + unitMove, startPoint, board, captureVec, resultVec);
+				}
+			}
+			else
+			{
+				MakeMove(nextMove, currPoint, board, captureVec, resultVec);
+			}
 		}
 	}
 	if (nextMove.dx == 0 || nextMove.dy == 0)
 	{
+		if (captureVec.size() > resultVec.size())
+		{
+			resultVec = captureVec;
+		}
+
 		return;
 	}
 }
@@ -201,5 +282,8 @@ int main(int argc, char* argv[])
 	Board board;
 	Point startPoint = FillBoard(inputFile, board);
 	CaptureVec captureVec;
+	CaptureVec resultVec;
+	MakeMove({ 0, 0 }, startPoint, board, captureVec, resultVec);
+
 	return 0;
 }
