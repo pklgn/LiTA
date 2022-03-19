@@ -56,9 +56,10 @@ struct Capture
 {
 	Point whitePos;
 	Point blackPos;
+	Point afterPos;
 
-	Capture(Point whitePos, Point blackPos)
-		: whitePos(whitePos), blackPos(blackPos)
+	Capture(Point whitePos, Point blackPos, Point afterPos)
+		: whitePos(whitePos), blackPos(blackPos), afterPos(afterPos)
 	{
 	}
 };
@@ -197,9 +198,10 @@ CaptureVec MakeMove(const Move& move, const Move& moveDirect, Point& startPoint,
 		board[currPoint.x + moveDirect.dx][currPoint.y + moveDirect.dy].figure != CHECKER_BLACK &&
 		InRange(currPoint.x, MIN_POS, MAX_POS - 2) && InRange(currPoint.y, MIN_POS, MAX_POS - 2))
 	{
+		Point afterPoint = { currPoint.x + moveDirect.dx, currPoint.y + moveDirect.dy };
 		CaptureVec interResult;
 		CaptureVec result;
-		Capture capture = { startPoint, currPoint };
+		Capture capture = { startPoint, currPoint, afterPoint };
 		captureVec.push_back(capture);
 		board[currPoint.x][currPoint.y].figure = BLANK;
 		while (InRange(currPoint.x, MIN_POS - 1, MAX_POS - 1) && InRange(currPoint.y, MIN_POS - 1, MAX_POS - 1) &&
@@ -248,9 +250,15 @@ int main(int argc, char* argv[])
 	Point startPoint = FillBoard(inputFile, board);
 	CaptureVec captureVec;
 	CaptureVec resultVec = MakeCapture(NO_MOVE, startPoint, board, captureVec);
+
+	std::cout << resultVec.size() << std::endl;
 	for (size_t i = 0; i < resultVec.size(); i++)
 	{
-		std::cout << "whitePos " << resultVec.at(i).whitePos.x << " " << resultVec.at(i).whitePos.y << std::endl;
+		std::cout << resultVec.at(i).whitePos.x + 1 << " " << resultVec.at(i).whitePos.y + 1 << std::endl;
+		if (i == resultVec.size() - 1)
+		{
+			std::cout << resultVec.at(i).afterPos.x + 1 << " " << resultVec.at(i).afterPos.y + 1;
+		}
 	}
 	return 0;
 }
