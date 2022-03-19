@@ -132,7 +132,8 @@ CaptureVec MakeCapture(const Move& prevMoveDirect, Point& startPoint, Board boar
 			interResult = MakeMove(OFFSET_DR, OFFSET_DR, startPoint, boardDR, captureVecDR);
 			if (interResult.size() > captureVec.size())
 			{
-				result = interResult;
+				result.clear();
+				result.insert(result.begin(), interResult.begin(), interResult.end());
 			}
 		}
 	}
@@ -145,7 +146,8 @@ CaptureVec MakeCapture(const Move& prevMoveDirect, Point& startPoint, Board boar
 			interResult = MakeMove(OFFSET_UL, OFFSET_UL, startPoint, boardUL, captureVecUL);
 			if (interResult.size() > captureVec.size())
 			{
-				result = interResult;
+				result.clear();
+				result.insert(result.begin(), interResult.begin(), interResult.end());
 			}
 		}
 	}
@@ -158,7 +160,8 @@ CaptureVec MakeCapture(const Move& prevMoveDirect, Point& startPoint, Board boar
 			interResult = MakeMove(OFFSET_DL, OFFSET_DL, startPoint, boardDL, captureVecDL);
 			if (interResult.size() > captureVec.size())
 			{
-				result = interResult;
+				result.clear();
+				result.insert(result.begin(), interResult.begin(), interResult.end());
 			}
 		}
 	}
@@ -171,7 +174,8 @@ CaptureVec MakeCapture(const Move& prevMoveDirect, Point& startPoint, Board boar
 			interResult = MakeMove(OFFSET_UR, OFFSET_UR, startPoint, boardUR, captureVecUR);
 			if (interResult.size() > captureVec.size())
 			{
-				result = interResult;
+				result.clear();
+				result.insert(result.begin(), interResult.begin(), interResult.end());
 			}
 		}
 	}
@@ -185,27 +189,38 @@ CaptureVec MakeMove(const Move& move, const Move& moveDirect, Point& startPoint,
 	if (board[currPoint.x][currPoint.y].figure == CHECKER_BLACK && 
 		board[currPoint.x + moveDirect.dx][currPoint.y + moveDirect.dy].figure != CHECKER_BLACK)
 	{
+		CaptureVec interResult;
+		CaptureVec result;
 		Capture capture = { startPoint, currPoint };
 		captureVec.push_back(capture);
 		board[currPoint.x][currPoint.y].figure = BLANK;
-		for (; InRange(currPoint.x, MIN_POS - 1, MAX_POS - 1); currPoint.x += moveDirect.dx)
+		for (; InRange(currPoint.x, MIN_POS - 1, MAX_POS - 1) && InRange(currPoint.y, MIN_POS - 1, MAX_POS - 1); currPoint.x += moveDirect.dx, currPoint.y += moveDirect.dy)
 		{
-			for (; InRange(currPoint.y, MIN_POS - 1, MAX_POS - 1); currPoint.y += moveDirect.dy)
+			Point nextPoint = { currPoint.x + moveDirect.dx, currPoint.y + moveDirect.dy };
+			CaptureVec interResult = MakeCapture(moveDirect, nextPoint, board, captureVec);
+			if (interResult.size() > result.size())
 			{
-				Point nextPoint = { currPoint.x + moveDirect.dx, currPoint.y + moveDirect.dy };
-				CaptureVec result = MakeCapture(moveDirect, nextPoint, board, captureVec);
-
-				return result;
+				result.clear();
+				result.insert(result.begin(), interResult.begin(), interResult.end());
 			}
+			
 		}
-		
+		return result;
 	}
 	else
 	{
-		if (InRange(currPoint.x, MIN_POS, MAX_POS - 2) && InRange(currPoint.y, MIN_POS - 1, MAX_POS - 1) &&
-			board[currPoint.x + moveDirect.dx][currPoint.y + moveDirect.dy].figure != CHECKER_BLACK)
+		if (board[currPoint.x + moveDirect.dx][currPoint.y + moveDirect.dy].figure == CHECKER_BLACK &&
+			board[currPoint.x][currPoint.y].figure == CHECKER_BLACK)
+		{
+			return captureVec;
+		}
+		else if (InRange(currPoint.x, MIN_POS, MAX_POS - 2) && InRange(currPoint.y, MIN_POS, MAX_POS - 2))
 		{
 			MakeMove(move + moveDirect, moveDirect, startPoint, board, captureVec);
+		}
+		else
+		{
+			return captureVec;
 		}
 	}
 
