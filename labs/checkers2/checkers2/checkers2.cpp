@@ -179,7 +179,7 @@ CaptureVec MakeCapture(const Move& prevMoveDirect, Point& startPoint, Board boar
 	return result;
 }
 
-CaptureVec MakeMove(const Move& move, const Move& moveDirect, Point& startPoint, Board& board, CaptureVec& captureVec)
+CaptureVec MakeMove(const Move& move, const Move& moveDirect, Point& startPoint, Board& board, CaptureVec captureVec)
 {
 	Point currPoint = { startPoint.x + move.dx, startPoint.y + move.dy };
 	if (board[currPoint.x][currPoint.y].figure == CHECKER_BLACK && 
@@ -205,7 +205,7 @@ CaptureVec MakeMove(const Move& move, const Move& moveDirect, Point& startPoint,
 		if (InRange(currPoint.x, MIN_POS, MAX_POS - 2) && InRange(currPoint.y, MIN_POS - 1, MAX_POS - 1) &&
 			board[currPoint.x + moveDirect.dx][currPoint.y + moveDirect.dy].figure != CHECKER_BLACK)
 		{
-			MakeMove(move + moveDirect, moveDirect, startPoint, board, captureVec);
+			captureVec = MakeMove(move + moveDirect, moveDirect, startPoint, board, captureVec);
 		}
 	}
 
