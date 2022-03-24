@@ -1,14 +1,14 @@
-/*
-* 1.8. Шашки 2 (7) 
-* На шахматном поле расположены N черных шашек и одна белая дамка.
-* Требуется написать программу, которая по заданному расположению шашек определяет,
-* какое максимальное количество шашек может взять белая дамка за один ход.
-* 
-* Стандарт C++ 17
-* Среда разработки: Visual Studio 2019
-* ОС: Windows 10
-* 
-* Выполнил: Ермаков Павел, ПС-21
+п»ї/*
+* 1.8. РЁР°С€РєРё 2 (7)
+* РќР° С€Р°С…РјР°С‚РЅРѕРј РїРѕР»Рµ СЂР°СЃРїРѕР»РѕР¶РµРЅС‹ N С‡РµСЂРЅС‹С… С€Р°С€РµРє Рё РѕРґРЅР° Р±РµР»Р°СЏ РґР°РјРєР°.
+* РўСЂРµР±СѓРµС‚СЃСЏ РЅР°РїРёСЃР°С‚СЊ РїСЂРѕРіСЂР°РјРјСѓ, РєРѕС‚РѕСЂР°СЏ РїРѕ Р·Р°РґР°РЅРЅРѕРјСѓ СЂР°СЃРїРѕР»РѕР¶РµРЅРёСЋ С€Р°С€РµРє РѕРїСЂРµРґРµР»СЏРµС‚,
+* РєР°РєРѕРµ РјР°РєСЃРёРјР°Р»СЊРЅРѕРµ РєРѕР»РёС‡РµСЃС‚РІРѕ С€Р°С€РµРє РјРѕР¶РµС‚ РІР·СЏС‚СЊ Р±РµР»Р°СЏ РґР°РјРєР° Р·Р° РѕРґРёРЅ С…РѕРґ.
+*
+* РЎС‚Р°РЅРґР°СЂС‚ C++ 17
+* РЎСЂРµРґР° СЂР°Р·СЂР°Р±РѕС‚РєРё: Visual Studio 2019
+* РћРЎ: Windows 10
+*
+* Р’С‹РїРѕР»РЅРёР»: Р•СЂРјР°РєРѕРІ РџР°РІРµР», РџРЎ-21
 */
 
 #include <iostream>
@@ -126,7 +126,7 @@ CaptureVec MakeCapture(const Move& prevMoveDirect, const Point& startPoint, Boar
 {
 	CaptureVec interResult;
 	CaptureVec result = captureVec;
-	if (startPoint.x < MAX_POS - COORDINATE_SHIFT && 
+	if (startPoint.x < MAX_POS - COORDINATE_SHIFT &&
 		startPoint.y < MAX_POS - COORDINATE_SHIFT)
 	{
 		if (prevMoveDirect.dx != -OFFSET_DR.dx || prevMoveDirect.dy != -OFFSET_DR.dy)
@@ -141,7 +141,7 @@ CaptureVec MakeCapture(const Move& prevMoveDirect, const Point& startPoint, Boar
 			}
 		}
 	}
-	if (startPoint.x > MIN_POS - COORDINATE_SHIFT && 
+	if (startPoint.x > MIN_POS - COORDINATE_SHIFT &&
 		startPoint.y > MIN_POS - COORDINATE_SHIFT)
 	{
 		if (prevMoveDirect.dx != -OFFSET_UL.dx || prevMoveDirect.dy != -OFFSET_UL.dy)
@@ -156,7 +156,7 @@ CaptureVec MakeCapture(const Move& prevMoveDirect, const Point& startPoint, Boar
 			}
 		}
 	}
-	if (startPoint.x < MAX_POS - COORDINATE_SHIFT && 
+	if (startPoint.x < MAX_POS - COORDINATE_SHIFT &&
 		startPoint.y > MIN_POS - COORDINATE_SHIFT)
 	{
 		if (prevMoveDirect.dx != -OFFSET_DL.dx || prevMoveDirect.dy != -OFFSET_DL.dy)
@@ -171,7 +171,7 @@ CaptureVec MakeCapture(const Move& prevMoveDirect, const Point& startPoint, Boar
 			}
 		}
 	}
-	if (startPoint.x > MIN_POS - COORDINATE_SHIFT && 
+	if (startPoint.x > MIN_POS - COORDINATE_SHIFT &&
 		startPoint.y < MAX_POS - COORDINATE_SHIFT)
 	{
 		if (prevMoveDirect.dx != -OFFSET_UR.dx || prevMoveDirect.dy != -OFFSET_UR.dy)
@@ -190,14 +190,10 @@ CaptureVec MakeCapture(const Move& prevMoveDirect, const Point& startPoint, Boar
 	return result;
 }
 
-<<<<<<< HEAD
-CaptureVec MakeMove(const Move& move, const Move& moveDirect, Point& startPoint, Board& board, CaptureVec captureVec)
-=======
 CaptureVec MakeMove(const Move& move, const Move& moveDirect, const Point& startPoint, Board& board, CaptureVec& captureVec)
->>>>>>> 9c5725cc1237717e46085c9ca1981c65bcc889b9
 {
 	Point currPoint = { startPoint.x + move.dx, startPoint.y + move.dy };
-	if (board[currPoint.x][currPoint.y] == CHECKER_BLACK && 
+	if (board[currPoint.x][currPoint.y] == CHECKER_BLACK &&
 		board[currPoint.x + moveDirect.dx][currPoint.y + moveDirect.dy] != CHECKER_BLACK &&
 		InRange(currPoint.x, MIN_POS, MAX_POS - 2) && InRange(currPoint.y, MIN_POS, MAX_POS - 2))
 	{
@@ -207,7 +203,7 @@ CaptureVec MakeMove(const Move& move, const Move& moveDirect, const Point& start
 		captureVec.push_back(capture);
 		board[currPoint.x][currPoint.y] = BLANK;
 
-		while (InRange(currPoint.x, MIN_POS - COORDINATE_SHIFT, MAX_POS - COORDINATE_SHIFT) && 
+		while (InRange(currPoint.x, MIN_POS - COORDINATE_SHIFT, MAX_POS - COORDINATE_SHIFT) &&
 			InRange(currPoint.y, MIN_POS - COORDINATE_SHIFT, MAX_POS - COORDINATE_SHIFT) &&
 			board[currPoint.x][currPoint.y] != CHECKER_BLACK)
 		{
@@ -228,7 +224,7 @@ CaptureVec MakeMove(const Move& move, const Move& moveDirect, const Point& start
 	else
 	{
 		if (board[currPoint.x][currPoint.y] == CHECKER_BLACK &&
-			board[currPoint.x + moveDirect.dx][currPoint.y + moveDirect.dy] == CHECKER_BLACK )
+			board[currPoint.x + moveDirect.dx][currPoint.y + moveDirect.dy] == CHECKER_BLACK)
 		{
 			return captureVec;
 		}
@@ -251,16 +247,12 @@ bool PrintCaptureVec(const CaptureVec& resultVec, std::ofstream& outputFile)
 
 	for (size_t i = 0; i < resultVec.size(); i++)
 	{
-		outputFile << resultVec.at(i).whitePos.x + COORDINATE_SHIFT 
+		outputFile << resultVec.at(i).whitePos.x + COORDINATE_SHIFT
 			<< " " << resultVec.at(i).whitePos.y + COORDINATE_SHIFT << std::endl;
 		if (i == resultVec.size() - 1)
 		{
-<<<<<<< HEAD
-			captureVec = MakeMove(move + moveDirect, moveDirect, startPoint, board, captureVec);
-=======
-			outputFile << resultVec.at(i).afterPos.x + COORDINATE_SHIFT 
+			outputFile << resultVec.at(i).afterPos.x + COORDINATE_SHIFT
 				<< " " << resultVec.at(i).afterPos.y + COORDINATE_SHIFT << std::endl;
->>>>>>> 9c5725cc1237717e46085c9ca1981c65bcc889b9
 		}
 	}
 
@@ -287,7 +279,7 @@ int main()
 	Point startPoint = FillBoard(inputFile, board);
 	CaptureVec captureVec;
 	CaptureVec resultVec = MakeCapture(NO_MOVE, startPoint, board, captureVec);
-	
+
 	std::ofstream outputFile(OUTPUT_FILE_NAME);
 	status = PrintCaptureVec(resultVec, outputFile);
 	if (!status)
