@@ -190,7 +190,11 @@ CaptureVec MakeCapture(const Move& prevMoveDirect, const Point& startPoint, Boar
 	return result;
 }
 
+<<<<<<< HEAD
+CaptureVec MakeMove(const Move& move, const Move& moveDirect, Point& startPoint, Board& board, CaptureVec captureVec)
+=======
 CaptureVec MakeMove(const Move& move, const Move& moveDirect, const Point& startPoint, Board& board, CaptureVec& captureVec)
+>>>>>>> 9c5725cc1237717e46085c9ca1981c65bcc889b9
 {
 	Point currPoint = { startPoint.x + move.dx, startPoint.y + move.dy };
 	if (board[currPoint.x][currPoint.y] == CHECKER_BLACK && 
@@ -251,8 +255,12 @@ bool PrintCaptureVec(const CaptureVec& resultVec, std::ofstream& outputFile)
 			<< " " << resultVec.at(i).whitePos.y + COORDINATE_SHIFT << std::endl;
 		if (i == resultVec.size() - 1)
 		{
+<<<<<<< HEAD
+			captureVec = MakeMove(move + moveDirect, moveDirect, startPoint, board, captureVec);
+=======
 			outputFile << resultVec.at(i).afterPos.x + COORDINATE_SHIFT 
 				<< " " << resultVec.at(i).afterPos.y + COORDINATE_SHIFT << std::endl;
+>>>>>>> 9c5725cc1237717e46085c9ca1981c65bcc889b9
 		}
 	}
 
