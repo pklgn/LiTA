@@ -19,8 +19,8 @@ int main()
 		return 1;
 	}
 
-	size_t L; //timber length
-	size_t N; //cutting amount
+	size_t L;
+	size_t N;
 
 	inputFile >> L >> N;
 	size_t cuttingPoint;
