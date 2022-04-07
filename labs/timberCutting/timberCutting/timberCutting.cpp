@@ -1,15 +1,34 @@
+/*
+* 3.3. Распил бруса (7)
+* На пилораму привезли брус длиной L метров. Известны места, в которых необходимо сделать распилы. 
+* Стоимость одного распила равна длине распиливаемого бруса. Различный порядок распилов приводит к 
+* различным итоговым ценам. Например, брус длиной 10 метров, который нужно распилить на расстоянии 
+* 2, 4 и 7 метров можно пилить разными способами. Можно распилить сначала на отметке 2, потом 4 и 
+* потом 7. Стоимость будет 10+8+6=24. А если сначала распилить на отметке 4, потом 2 и затем 7, то 
+* стоимость составит 10+4+6=20. Требуется написать программу, которая определяла бы минимальную стоимость 
+* распила.
+* 
+* Стандарт C++ 17
+* Среда разработки: Visual Studio 2019, MSVC
+* ОС: Windows 10
+*
+* Выполнил: Ермаков Павел, ПС-21
+*/
+
 #include <iostream>
 #include <fstream>
 #include <vector>
+#include <limits>
 
 constexpr size_t MIN_TIMBER_CUTTING_POINT = 0;
+constexpr size_t NO_COST = 0;
 const std::string INPUT_FILE_NAME = "INPUT.TXT";
 const std::string OUTPUT_FILE_NAME = "OUTPUT.TXT";
 
 typedef std::vector<size_t> CuttingPoints;
+typedef std::vector<std::vector<size_t>> CostTable;
 
 bool ValidateFile(const std::ifstream& inputFile);
-size_t GetMinTimberLengthCut(std::vector<size_t>& cuttingPoints);
 
 int main()
 {
@@ -32,9 +51,8 @@ int main()
 		cuttingPoints.push_back(cuttingPoint);
 	}
 	cuttingPoints.push_back(L);
-	std::cout << GetMinTimberLengthCut(cuttingPoints) << std::endl;
+	
 
-	return 0;
 }
 
 bool ValidateFile(const std::ifstream& inputFile)
@@ -49,29 +67,11 @@ bool ValidateFile(const std::ifstream& inputFile)
 	return true;
 }
 
-size_t CalculateTimberLength(size_t leftBound, size_t rightBound)
+CostTable GetCostTable(CuttingPoints& cuttingPoints)
 {
-	return rightBound - leftBound;
-}
-
-size_t GetMinTimberLengthCut(std::vector<size_t>& cuttingPoints)
-{
-	size_t result = cuttingPoints.back();
-	size_t minCuttingPoint = 0;
-	for (size_t point = 1; point < cuttingPoints.size() - 1; ++point)
+	CostTable result;
+	for (size_t i = 1, j = 0; i < cuttingPoints.size(); ++j)
 	{
-		size_t timberLength = CalculateTimberLength(cuttingPoints.at(point - 1), cuttingPoints.at(point + 1));
-		if (timberLength < result)
-		{
-			result = timberLength;
-			minCuttingPoint = point;
-		}
+		
 	}
-	cuttingPoints.erase(cuttingPoints.begin() + minCuttingPoint);
-	while (cuttingPoints.size() > 2)
-	{
-		result += GetMinTimberLengthCut(cuttingPoints);
-	}
-
-	return result;
 }
