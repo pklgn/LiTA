@@ -74,29 +74,28 @@ CostTable GetCostTable(CuttingPoints& cuttingPoints)
 {
 	int row = 0;
 	int column = row + 1;
-	
-	CostTable result = {};
+	int tableSize = cuttingPoints.size();
+	CostTable result(tableSize, CostRow(tableSize, -1));
 	while (column < cuttingPoints.size())
 	{
 		int currColumn = column;
-		row = 0;
-		for (; row < cuttingPoints.size() && currColumn < cuttingPoints.size(); ++row, ++currColumn)
+		int currRow = 0;
+		for (; currRow < cuttingPoints.size() && currColumn < cuttingPoints.size(); ++currRow, ++currColumn)
 		{
-			if (std::abs(column - row) == 1)
+			if (currColumn <= row)
 			{
-				result.push_back({});
-				result[row].push_back(0);
-			}
-			else if (column - row == 0)
-			{
-				result[row].push_back(0);
 				continue;
+			}
+
+			if (column - row == 1)
+			{
+				result[currRow][currColumn] = 0;
 			}
 			else
 			{
-				result[row].push_back(cuttingPoints[column] - cuttingPoints[row]);
+				result[currRow][currColumn] = std::abs(static_cast<int>(cuttingPoints[column] - cuttingPoints[currRow]));
 			}
-			std::cout << "row " << row << " column " << currColumn << std::endl;
+			//std::cout << "row " << row << " column " << currColumn << std::endl;
 		}
 		column++;
 	}
