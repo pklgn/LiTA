@@ -19,6 +19,7 @@
 #include <fstream>
 #include <vector>
 #include <limits>
+#include <cmath>
 
 constexpr size_t MIN_TIMBER_CUTTING_POINT = 0;
 constexpr size_t NO_COST = 0;
@@ -26,9 +27,11 @@ const std::string INPUT_FILE_NAME = "INPUT.TXT";
 const std::string OUTPUT_FILE_NAME = "OUTPUT.TXT";
 
 typedef std::vector<size_t> CuttingPoints;
-typedef std::vector<std::vector<size_t>> CostTable;
+typedef std::vector<int> CostRow;
+typedef std::vector<CostRow> CostTable;
 
 bool ValidateFile(const std::ifstream& inputFile);
+CostTable GetCostTable(CuttingPoints& cuttingPoints);
 
 int main()
 {
@@ -51,7 +54,7 @@ int main()
 		cuttingPoints.push_back(cuttingPoint);
 	}
 	cuttingPoints.push_back(L);
-	
+	CostTable costTable = GetCostTable(cuttingPoints);
 
 }
 
@@ -69,9 +72,34 @@ bool ValidateFile(const std::ifstream& inputFile)
 
 CostTable GetCostTable(CuttingPoints& cuttingPoints)
 {
-	CostTable result;
-	for (size_t i = 1, j = 0; i < cuttingPoints.size(); ++j)
+	int row = 0;
+	int column = row + 1;
+	
+	CostTable result = {};
+	while (column < cuttingPoints.size())
 	{
-		
+		int currColumn = column;
+		row = 0;
+		for (; row < cuttingPoints.size() && currColumn < cuttingPoints.size(); ++row, ++currColumn)
+		{
+			if (std::abs(column - row) == 1)
+			{
+				result.push_back({});
+				result[row].push_back(0);
+			}
+			else if (column - row == 0)
+			{
+				result[row].push_back(0);
+				continue;
+			}
+			else
+			{
+				result[row].push_back(cuttingPoints[column] - cuttingPoints[row]);
+			}
+			std::cout << "row " << row << " column " << currColumn << std::endl;
+		}
+		column++;
 	}
+
+	return result;
 }
