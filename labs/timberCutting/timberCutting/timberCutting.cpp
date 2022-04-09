@@ -18,11 +18,11 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
-#include <limits>
-#include <cmath>
 
-constexpr size_t MIN_TIMBER_CUTTING_POINT = 0;
-constexpr size_t NO_COST = 0;
+constexpr size_t INITIAL_ROW = 0;
+constexpr size_t INITIAL_COST = 0;
+constexpr size_t MIN_CUTTING_POINT = 0;
+constexpr size_t NO_COST = -1;
 const std::string INPUT_FILE_NAME = "INPUT.TXT";
 const std::string OUTPUT_FILE_NAME = "OUTPUT.TXT";
 
@@ -47,7 +47,7 @@ int main()
 	inputFile >> L >> N;
 	size_t cuttingPoint;
 	CuttingPoints cuttingPoints;
-	cuttingPoints.push_back(MIN_TIMBER_CUTTING_POINT);
+	cuttingPoints.push_back(MIN_CUTTING_POINT);
 	for (size_t i = 0; i < N; ++i)
 	{
 		inputFile >> cuttingPoint;
@@ -72,30 +72,35 @@ bool ValidateFile(const std::ifstream& inputFile)
 
 CostTable GetCostTable(CuttingPoints& cuttingPoints)
 {
-	int row = 0;
+	int row = INITIAL_ROW;
 	int column = row + 1;
 	int tableSize = cuttingPoints.size();
-	CostTable result(tableSize, CostRow(tableSize, -1));
+	CostTable result(tableSize, CostRow(tableSize, INITIAL_COST));
 	while (column < cuttingPoints.size())
 	{
 		int currColumn = column;
-		int currRow = 0;
+		int currRow = INITIAL_ROW;
 		for (; currRow < cuttingPoints.size() && currColumn < cuttingPoints.size(); ++currRow, ++currColumn)
 		{
-			if (currColumn <= row)
+			if (currColumn <= row + 1)
 			{
 				continue;
 			}
 
-			if (column - row == 1)
+			int tempCost = NO_COST;
+			for (int i = currRow + 1; i < currColumn; ++i)
 			{
-				result[currRow][currColumn] = 0;
+				
+				int currCost = result[currRow][i] + result[i][currColumn] + cuttingPoints[currColumn] - cuttingPoints[currRow];
+				if (currCost < tempCost || tempCost == NO_COST)
+				{
+					tempCost = currCost;
+				}
 			}
-			else
+			if (tempCost != NO_COST)
 			{
-				result[currRow][currColumn] = std::abs(static_cast<int>(cuttingPoints[column] - cuttingPoints[currRow]));
+				result[currRow][currColumn] = tempCost;
 			}
-			//std::cout << "row " << row << " column " << currColumn << std::endl;
 		}
 		column++;
 	}
