@@ -11,17 +11,29 @@ const std::string OUTPUT_FILE_NAME = "OUTPUT.TXT";
 
 typedef std::pair<int, int> RectangleSide;
 
+enum class PointType
+{
+	Begin,
+	End,
+};
 
 struct Point
 {
 	int x;
 	int y;
+	PointType type;
 
 	friend std::istream& operator>>(std::istream& is, Point& point)
 	{
 		is >> point.x >> point.y;
 		return is;
 	}
+};
+
+struct SidePoint
+{
+	int pos;
+	PointType type;
 };
 
 struct Dimensions
@@ -36,12 +48,11 @@ struct RectangleSideEvent
 	int event;
 };
 
-typedef std::map<int, std::vector<RectangleSideEvent>> RectangleSides;
-
+typedef std::map<int, std::vector<SidePoint>> SidePoints;
 
 Dimensions GetDimensions(Point& A, Point& C);
 bool ValidateFile(const std::ifstream& inputFile);
-
+void PointsSort(std::vector<SidePoint>& sidePoints);
 
 int main()
 {
@@ -55,8 +66,8 @@ int main()
 	int N; //rectangles number
 	inputFile >> N;
 
-	RectangleSides xSides;
-	RectangleSides ySides;
+	SidePoints xPoints;
+	SidePoints yPoints;
 
 	for (int i = 0; i < N; ++i)
 	{
@@ -66,31 +77,34 @@ int main()
 		Dimensions dimensions = GetDimensions(A, C);
 		Point B = { A.x + dimensions.width, A.y };
 		Point D = { A.x, A.y + dimensions.height };
-		RectangleSideEvent uSideEvent = { { A.x, B.x }, 1 };
-		RectangleSideEvent rSideEvent = { { B.y, C.y }, -1 };
-		RectangleSideEvent dSideEvent = { { D.x, C.x }, -1 };
-		RectangleSideEvent lSideEvent = { { A.y, D.y }, 1 };
-		xSides[A.y].push_back(uSideEvent);
-		xSides[C.y].push_back(dSideEvent);
-		ySides[A.x].push_back(lSideEvent);
-		ySides[C.x].push_back(rSideEvent);
+		xPoints[A.y].push_back({ A.x, PointType::Begin });
+		xPoints[A.y].push_back({ B.x, PointType::End });
+		xPoints[C.y].push_back({ C.x, PointType::End });
+		xPoints[C.y].push_back({ D.x, PointType::Begin });
+		yPoints[A.x].push_back({ A.y, PointType::End });
+		yPoints[B.x].push_back({ B.y, PointType::End });
+		yPoints[C.x].push_back({ C.y, PointType::Begin });
+		yPoints[D.x].push_back({ D.y, PointType::Begin });
 	}
 
-	for (auto& ySide: ySides)
+	//Insertion sort
+	for (auto& points : xPoints)
 	{
-		int y = ySide.first;
-		for (RectangleSides::iterator i = xSides.begin(); i != xSides.end(); i++)
-		{
-			if (i->first == y)
-			{
-			}
-		}
+		PointsSort(points.second);
+	}
+	for (auto& points : yPoints)
+	{
+		PointsSort(points.second);
+	}
 
-		for (auto& side: ySide.second)
+	for (auto& xPoint: yPoints)
+	{
+		for (auto& yPoint: xPoints)
 		{
-			
+			std::cout << xPoint.first << " " << yPoint.first << std::endl;
 		}
 	}
+
 
 	return 0;
 }
@@ -114,4 +128,15 @@ Dimensions GetDimensions(Point& A, Point& C)
 	result.height = C.y - A.y;
 
 	return result;
+}
+
+void PointsSort(std::vector<SidePoint>& sidePoints)
+{
+	for (int i = 1; i < sidePoints.size(); ++i)
+	{
+		for (int j = i; j > 0 && sidePoints[j - 1].pos > sidePoints[j].pos; --j)
+		{
+			std::swap(sidePoints[j - 1], sidePoints[j]);
+		}
+	}
 }
