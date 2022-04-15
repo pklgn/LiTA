@@ -15,6 +15,8 @@ enum class PointType
 {
 	Begin,
 	End,
+	IntersectionBegin,
+	IntersectionEnd,
 };
 
 struct Point
@@ -42,12 +44,6 @@ struct Dimensions
 	int height;
 };
 
-struct RectangleSideEvent
-{
-	RectangleSide side;
-	int event;
-};
-
 typedef std::map<int, std::vector<SidePoint>> SidePoints;
 
 Dimensions GetDimensions(Point& A, Point& C);
@@ -66,8 +62,8 @@ int main()
 	int N; //rectangles number
 	inputFile >> N;
 
-	SidePoints xPoints;
 	SidePoints yPoints;
+	SidePoints xPoints;
 
 	for (int i = 0; i < N; ++i)
 	{
@@ -77,34 +73,65 @@ int main()
 		Dimensions dimensions = GetDimensions(A, C);
 		Point B = { A.x + dimensions.width, A.y };
 		Point D = { A.x, A.y + dimensions.height };
-		xPoints[A.y].push_back({ A.x, PointType::Begin });
-		xPoints[A.y].push_back({ B.x, PointType::End });
-		xPoints[C.y].push_back({ C.x, PointType::End });
-		xPoints[C.y].push_back({ D.x, PointType::Begin });
-		yPoints[A.x].push_back({ A.y, PointType::End });
-		yPoints[B.x].push_back({ B.y, PointType::End });
-		yPoints[C.x].push_back({ C.y, PointType::Begin });
-		yPoints[D.x].push_back({ D.y, PointType::Begin });
+		yPoints[A.y].push_back({ A.x, PointType::Begin });
+		yPoints[A.y].push_back({ B.x, PointType::End });
+		yPoints[C.y].push_back({ C.x, PointType::End });
+		yPoints[C.y].push_back({ D.x, PointType::Begin });
+		xPoints[A.x].push_back({ A.y, PointType::End });
+		xPoints[B.x].push_back({ B.y, PointType::End });
+		xPoints[C.x].push_back({ C.y, PointType::Begin });
+		xPoints[D.x].push_back({ D.y, PointType::Begin });
 	}
 
 	//Insertion sort
-	for (auto& points : xPoints)
-	{
-		PointsSort(points.second);
-	}
 	for (auto& points : yPoints)
 	{
 		PointsSort(points.second);
 	}
-
-	for (auto& xPoint: yPoints)
+	for (auto& points : xPoints)
 	{
-		for (auto& yPoint: xPoints)
-		{
-			std::cout << xPoint.first << " " << yPoint.first << std::endl;
-		}
+		PointsSort(points.second);
 	}
 
+	for (auto& xPoint: xPoints)
+	{
+		bool blocked = false;
+		std::cout << xPoint.first << " ";
+		for (auto& point: xPoint.second)
+		{
+			std::cout << point.pos << " ";
+			auto currLine = yPoints[point.pos];
+			int intersection = 0;
+			int side = 0;
+			std::vector<SidePoint> intersectionPoints;
+			for (int i = 0; currLine[i].pos < xPoint.first; ++i)
+			{
+				if (currLine[i].pos == xPoint.first)
+				{
+					if (side > 0)
+					{
+						SidePoint intersectioPoint = { xPoint.first, PointType::IntersectionBegin };
+						intersectionPoints.push_back(intersectioPoint);
+					}
+					else if (side < 0)
+					{
+						SidePoint intersectioPoint = { xPoint.first, PointType::IntersectionEnd };
+						intersectionPoints.push_back(intersectioPoint);
+					}
+				}
+				if (currLine[i].type == PointType::Begin)
+				{
+					side += 1;
+				}
+				else
+				{
+					side -= 1;
+				}
+
+			}
+		}
+		std::cout << std::endl;
+	}
 
 	return 0;
 }
