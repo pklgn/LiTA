@@ -5,6 +5,7 @@
 #include <fstream>
 #include <vector>
 #include <map>
+#include <algorithm>
 
 const std::string INPUT_FILE_NAME = "INPUT.TXT";
 const std::string OUTPUT_FILE_NAME = "OUTPUT.TXT";
@@ -86,11 +87,11 @@ int main()
 	//Insertion sort
 	for (auto& points : yPoints)
 	{
-		PointsSort(points.second);
+		std::sort(points.second.begin(), points.second.end());
 	}
 	for (auto& points : xPoints)
 	{
-		PointsSort(points.second);
+		std::sort(points.second.begin(), points.second.end());
 	}
 
 	for (auto& xPoint: xPoints)
