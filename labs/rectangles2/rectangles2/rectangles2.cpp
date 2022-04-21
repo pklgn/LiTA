@@ -16,8 +16,10 @@ enum class PointType
 {
 	Begin,
 	End,
+	BeginEnd,
 	IntersectionBegin,
 	IntersectionEnd,
+	IntersectionBeginEnd,
 };
 
 enum class SideType
@@ -58,6 +60,7 @@ typedef std::map<int, VertexPoint> EventPoints;
 
 Dimensions GetDimensions(Point& A, Point& C);
 bool ValidateFile(const std::ifstream& inputFile);
+void InsertVertexPoint(int axis, EventPoints& axisPoints, int axisPosition, const VertexInfo& vertexInfo, EventPoints& normalAxisPoints);
 
 int main()
 {
@@ -82,6 +85,7 @@ int main()
 		Dimensions dimensions = GetDimensions(A, C);
 		Point B = { A.x + dimensions.width, A.y };
 		Point D = { A.x, A.y + dimensions.height };
+		/*
 		yPoints[A.y].insert({ A.x, { PointType::Begin, SideType::Up } });
 		yPoints[A.y].insert({ B.x, { PointType::End, SideType::Up } });
 		yPoints[C.y].insert({ C.x, { PointType::End, SideType::Down } });
@@ -90,6 +94,16 @@ int main()
 		xPoints[B.x].insert({ B.y, { PointType::End, SideType::Right } });
 		xPoints[C.x].insert({ C.y, { PointType::Begin, SideType::Right } });
 		xPoints[D.x].insert({ D.y, { PointType::Begin, SideType::Left } });
+		*/
+
+		InsertVertexPoint(A.y, yPoints, A.x, { PointType::Begin, SideType::Up }, xPoints);
+		InsertVertexPoint(A.y, yPoints, B.x, { PointType::End, SideType::Up }, xPoints);
+		InsertVertexPoint(C.y, yPoints, C.x, { PointType::End, SideType::Down }, xPoints);
+		InsertVertexPoint(C.y, yPoints, D.x, { PointType::Begin, SideType::Down }, xPoints);
+		InsertVertexPoint(A.x, xPoints, A.y, { PointType::End, SideType::Left }, yPoints);
+		InsertVertexPoint(B.x, xPoints, B.y, { PointType::End, SideType::Right }, yPoints);
+		InsertVertexPoint(C.x, xPoints, C.y, { PointType::Begin, SideType::Right }, yPoints);
+		InsertVertexPoint(D.x, xPoints, D.y, { PointType::Begin, SideType::Left }, yPoints);
 	}
 	
 	for (auto& xPoint: xPoints)
@@ -198,8 +212,11 @@ int main()
 			{
 				if (point.second.pointType == PointType::Begin)
 				{
+					if (sideState == 0)
+					{
+						lastSafePoint = point;
+					}
 					sideState += 1;
-					lastSafePoint = point;
 				}
 				else if (point.second.pointType == PointType::End)
 				{
@@ -255,8 +272,11 @@ int main()
 			{
 				if (point.second.pointType == PointType::Begin)
 				{
+					if (sideState == 0)
+					{
+						lastSafePoint = point;
+					}
 					sideState += 1;
-					lastSafePoint = point;
 				}
 				else if (point.second.pointType == PointType::End)
 				{
@@ -306,4 +326,18 @@ Dimensions GetDimensions(Point& A, Point& C)
 	result.height = C.y - A.y;
 
 	return result;
+}
+
+void InsertVertexPoint(int axis, EventPoints& axisPoints, int axisPosition, const VertexInfo& vertexInfo, EventPoints& normalAxisPoints)
+{
+	if (axisPoints[axis].count(axisPosition) && 
+		axisPoints[axis][axisPosition].pointType != vertexInfo.pointType)
+	{
+		axisPoints[axis].erase(axisPosition);
+		normalAxisPoints[axisPosition].erase(axis);
+	}
+	else
+	{
+		axisPoints[axis].insert({ axisPosition, vertexInfo });
+	}
 }
