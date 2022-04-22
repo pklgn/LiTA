@@ -12,7 +12,8 @@ typedef std::vector<std::string> Words;
 typedef std::pair<int, int> CharSpec;
 typedef std::map<char, CharSpec> CharMap;
 
-bool cmp(std::string& firstString, std::string& secondString);
+bool Compare(std::string& firstString, std::string& secondString);
+void PrintResult(int length, Words words, std::ostream& outputStream);
 
 int main(int argc, char* argv[])
 {
@@ -51,8 +52,9 @@ int main(int argc, char* argv[])
 		}
 	}
 
-	Words resultWords;
 	int resultLength = 0;
+	Words resultWords;
+	
 	for (auto& currWord: words)
 	{
 		bool isCorrect = true;
@@ -85,18 +87,14 @@ int main(int argc, char* argv[])
 			chSpec.second.second = 0;
 		}
 	}
-	std::sort(resultWords.begin(), resultWords.end(), cmp);
+	std::sort(resultWords.begin(), resultWords.end(), Compare);
 	
-	std::cout << resultLength << std::endl;
-	for (auto& resultWord: resultWords)
-	{
-		std::cout << resultWord << std::endl;
-	}
+	PrintResult(resultLength, resultWords, std::cout);
 
 	return 0;
 }
 
-bool cmp(std::string& firstString, std::string& secondString)
+bool Compare(std::string& firstString, std::string& secondString)
 {
 	if (firstString.size() < secondString.size())
 	{
@@ -109,5 +107,14 @@ bool cmp(std::string& firstString, std::string& secondString)
 	else
 	{
 		return firstString < secondString;
+	}
+}
+
+void PrintResult(int length, Words words, std::ostream& outputStream)
+{
+	outputStream << length << std::endl;
+	for (auto& resultWord : words)
+	{
+		outputStream << resultWord << std::endl;
 	}
 }
