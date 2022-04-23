@@ -1,13 +1,16 @@
-﻿#include <cstdio>
+﻿// rectangles2.cpp : This file contains the 'main' function. Program execution begins and ends there.
+//
+
 #include <algorithm>
-#include <cstring>
 #include <fstream>
 #include <iostream>
-#define lson o << 1 
-#define rson o << 1 | 1 
-#define mid (l + r) / 2 
+#include <map>
+#include <vector>
 
 const std::string INPUT_FILE_NAME = "INPUT.TXT";
+const std::string OUTPUT_FILE_NAME = "OUTPUT.TXT";
+
+typedef std::pair<int, int> RectangleSide;
 
 enum class PointType
 {
@@ -17,6 +20,14 @@ enum class PointType
 	IntersectionBegin,
 	IntersectionEnd,
 	IntersectionBeginEnd,
+};
+
+enum class SideType
+{
+	Left,
+	Up,
+	Right,
+	Down,
 };
 
 struct Point
@@ -32,81 +43,25 @@ struct Point
 	}
 };
 
-struct Edge
+struct VertexInfo
 {
-	int left;
-	int right;
-	int height;
-	int flag;
-}e[10005];
-
-struct Tree
-{
-	int sum;
-	int num;
-	int len;
-	bool lflag;
-	bool rflag;
-}tree[100005];
-int n, mx = -2147483647, mn = 2147483647, edgenum, ans, last;
-void add_edge(int l, int r, int h, int f)
-{
-	e[++edgenum].left = l;
-	e[edgenum].right = r;
-	e[edgenum].height = h;
-	e[edgenum].flag = f;
-}
-bool cmp(Edge a, Edge b)
-{
-	return a.height < b.height || a.height == b.height && a.flag > b.flag;
-	
-}
-
-void pushup(int o, int l, int r)
-{
-	if (tree[o].sum)
-	{
-		tree[o].num = 1;
-		tree[o].len = r - l + 1;
-		tree[o].lflag = tree[o].rflag = 1;
-	}
-	else if (l == r)
-	{
-		tree[o].len = 0;
-		tree[o].num = 0;
-		tree[o].lflag = tree[o].rflag = 0;
-	}
-	else
-	{
-		tree[o].len = tree[lson].len + tree[rson].len;
-		tree[o].num = tree[lson].num + tree[rson].num;
-		if (tree[lson].rflag && tree[rson].lflag) tree[o].num--;
-		tree[o].lflag = tree[lson].lflag;
-		tree[o].rflag = tree[rson].rflag;
-	}
-}
-void add(int o, int l, int r, int from, int to, int value)
-{
-	if (l >= from && r <= to)
-	{
-		tree[o].sum += value;
-		pushup(o, l, r);
-		return;
-		
-	}
-	if (from <= mid) add(lson, l, mid, from, to, value);
-	if (to > mid) add(rson, mid + 1, r, from, to, value);
-	pushup(o, l, r);
-}
+	int count = 0;
+	PointType pointType;
+	SideType sideType;
+};
 
 struct Dimensions
 {
 	int width;
 	int height;
 };
+// pos PointType
+typedef std::map<int, VertexInfo> VertexPoint;
+typedef std::map<int, VertexPoint> EventPoints;
 
-bool ValidateFile(const std::ifstream& inputFile);
 Dimensions GetDimensions(Point& A, Point& C);
+bool ValidateFile(const std::ifstream& inputFile);
+void InsertVertexPoint(int axis, EventPoints& axisPoints, int axisPosition, const VertexInfo& vertexInfo, EventPoints& normalAxisPoints);
 
 int main()
 {
@@ -120,6 +75,9 @@ int main()
 	int N; //rectangles number
 	inputFile >> N;
 
+	EventPoints yPoints;
+	EventPoints xPoints;
+
 	for (int i = 0; i < N; ++i)
 	{
 		Point A;
@@ -129,40 +87,214 @@ int main()
 		Point B = { A.x + dimensions.width, A.y };
 		Point D = { A.x, A.y + dimensions.height };
 
-		mx = std::max(mx, std::max(D.x, B.x));
-		mn = std::min(mn, std::min(D.x, B.x));
-		add_edge(D.x, B.x, D.y, 1);
-		add_edge(D.x, B.x, B.y, -1);
+		InsertVertexPoint(A.y, yPoints, A.x, { 1, PointType::Begin, SideType::Up }, xPoints);
+		InsertVertexPoint(A.y, yPoints, B.x, { 1, PointType::End, SideType::Up }, xPoints);
+		InsertVertexPoint(C.y, yPoints, C.x, { 1, PointType::End, SideType::Down }, xPoints);
+		InsertVertexPoint(C.y, yPoints, D.x, { 1, PointType::Begin, SideType::Down }, xPoints);
+		InsertVertexPoint(A.x, xPoints, A.y, { 1, PointType::End, SideType::Left }, yPoints);
+		InsertVertexPoint(B.x, xPoints, B.y, { 1, PointType::End, SideType::Right }, yPoints);
+		InsertVertexPoint(C.x, xPoints, C.y, { 1, PointType::Begin, SideType::Right }, yPoints);
+		InsertVertexPoint(D.x, xPoints, D.y, { 1, PointType::Begin, SideType::Left }, yPoints);
 	}
 
-	if (mn <= 0)
+	for (auto& xPoint : xPoints)
 	{
-		for (int i = 1; i <= edgenum; i++)
+		int state = 0;
+		SideType currSide;
+		PointType currPoint;
+
+		for (auto& yPoint : yPoints)
 		{
-			e[i].left += -mn + 1;
-			e[i].right += -mn + 1;
-			
+			if (xPoint.second.count(yPoint.first) && xPoint.second[yPoint.first].count > 0)
+			{
+				if (xPoint.second[yPoint.first].pointType == PointType::Begin)
+				{
+					state += xPoint.second[yPoint.first].count;
+				}
+				else if (xPoint.second[yPoint.first].pointType == PointType::End)
+				{
+					state -= xPoint.second[yPoint.first].count;
+				}
+
+				currSide = xPoint.second[yPoint.first].sideType;
+				if (currSide == SideType::Left)
+				{
+					currPoint = PointType::IntersectionBegin;
+				}
+				else if (currSide == SideType::Right)
+				{
+					currPoint = PointType::IntersectionEnd;
+				}
+			}
+
+			if (state > 0)
+			{
+				yPoint.second.insert({ xPoint.first, { 1, currPoint, currSide } });
+			}
 		}
-		mx -= mn;
 	}
-	std::sort(e + 1, e + edgenum + 1, cmp);
-	for (int i = 1; i <= edgenum; i++)
+
+	for (auto& yPoint : yPoints)
 	{
-		add(1, 1, mx, e[i].left, e[i].right - 1, e[i].flag);
-		while (e[i].height == e[i + 1].height && e[i].flag == e[i + 1].flag)
+		int state = 0;
+		SideType currSide;
+		PointType currPoint;
+
+		for (auto& xPoint : xPoints)
 		{
-			i++;
-			add(1, 1, mx, e[i].left, e[i].right - 1, e[i].flag);
-			
+			if (yPoint.second.count(xPoint.first) && yPoint.second[xPoint.first].count > 0)
+			{
+				if (yPoint.second[xPoint.first].pointType == PointType::Begin)
+				{
+					state += yPoint.second[xPoint.first].count;
+				}
+				else if (yPoint.second[xPoint.first].pointType == PointType::End)
+				{
+					state -= yPoint.second[xPoint.first].count;
+				}
+
+				currSide = yPoint.second[xPoint.first].sideType;
+				if (currSide == SideType::Down)
+				{
+					currPoint = PointType::IntersectionBegin;
+				}
+				else if (currSide == SideType::Up)
+				{
+					currPoint = PointType::IntersectionEnd;
+				}
+			}
+
+			if (state > 0)
+			{
+				xPoint.second.insert({ yPoint.first, { 1, currPoint, currSide } });
+			}
 		}
-		ans += abs(tree[1].len - last);
-		last = tree[1].len;
-		ans += tree[1].num * 2 * (e[i + 1].height - e[i].height);
-		
 	}
-	std::cout << ans << std::endl;
+	int xResult = 0;
+
+	std::pair<int, VertexInfo> lastSafePoint;
+	for (auto& xPoint : xPoints)
+	{
+		int sideState = 0;
+		int intersectionState = 0;
+		for (auto& point : xPoint.second)
+		{
+			if (point.second.pointType == PointType::IntersectionBegin)
+			{
+
+				if (sideState > 0 && !intersectionState)
+				{
+					xResult += point.first - lastSafePoint.first;
+				}
+				intersectionState += 1;
+			}
+			else if (point.second.pointType == PointType::IntersectionEnd)
+			{
+				intersectionState -= 1;
+				if (sideState > 0)
+				{
+					lastSafePoint = point;
+				}
+			}
+			if (!intersectionState && point.second.count != -1)
+			{
+				if (point.second.pointType == PointType::Begin)
+				{
+					if (sideState == 0)
+					{
+						lastSafePoint = point;
+					}
+					sideState += point.second.count;
+				}
+				else if (point.second.pointType == PointType::End)
+				{
+					if (sideState > 1)
+					{
+						lastSafePoint = point;
+					}
+					sideState -= point.second.count;
+					xResult += point.first - lastSafePoint.first;
+				}
+			}
+			else if (intersectionState)
+			{
+				if (point.second.pointType == PointType::Begin)
+				{
+					sideState += point.second.count;
+				}
+				else if (point.second.pointType == PointType::End)
+				{
+					sideState -= point.second.count;
+				}
+			}
+		}
+	}
+
+	int yResult = 0;
+
+	for (auto& yPoint : yPoints)
+	{
+		int sideState = 0;
+		int intersectionState = 0;
+		std::pair<int, VertexInfo> lastSafePoint;
+		for (auto& point : yPoint.second)
+		{
+			if (point.second.pointType == PointType::IntersectionBegin)
+			{
+
+				if (sideState > 0 && !intersectionState)
+				{
+					yResult += point.first - lastSafePoint.first;
+				}
+				intersectionState += point.second.count;
+			}
+			else if (point.second.pointType == PointType::IntersectionEnd)
+			{
+				intersectionState -= point.second.count;
+				if (sideState > 0 && !intersectionState)
+				{
+					lastSafePoint = point;
+				}
+			}
+			if (!intersectionState && point.second.count != -1)
+			{
+				if (point.second.pointType == PointType::Begin)
+				{
+					if (sideState == 0)
+					{
+						lastSafePoint = point;
+					}
+					sideState += point.second.count;
+				}
+				else if (point.second.pointType == PointType::End)
+				{
+					if (sideState > 1)
+					{
+						lastSafePoint = point;
+					}
+					sideState -= point.second.count;
+					yResult += point.first - lastSafePoint.first;
+				}
+			}
+			else if (intersectionState)
+			{
+				if (point.second.pointType == PointType::Begin)
+				{
+					sideState += point.second.count;
+				}
+				else if (point.second.pointType == PointType::End)
+				{
+					sideState -= point.second.count;
+				}
+			}
+		}
+	}
+
+	int result = xResult + yResult;
+
+	std::cout << result << std::endl;
+
 	return 0;
-	
 }
 
 bool ValidateFile(const std::ifstream& inputFile)
@@ -177,11 +309,72 @@ bool ValidateFile(const std::ifstream& inputFile)
 	return true;
 }
 
-Dimensions GetDimensions(Point & A, Point & C)
+Dimensions GetDimensions(Point& A, Point& C)
 {
 	Dimensions result;
 	result.width = C.x - A.x;
 	result.height = C.y - A.y;
 
 	return result;
+}
+
+void InsertVertexPoint(int axis, EventPoints& axisPoints, int axisPosition, const VertexInfo& vertexInfo, EventPoints& normalAxisPoints)
+{
+	if (axisPoints[axis].count(axisPosition))
+	{
+		if (axisPoints[axis][axisPosition].pointType != vertexInfo.pointType || axisPoints[axis][axisPosition].sideType != vertexInfo.sideType)
+		{
+			axisPoints[axis][axisPosition].count = -1;
+		}
+		else if (axisPoints[axis][axisPosition].count >= 0)
+		{
+			VertexInfo updatedVertexInfo = vertexInfo;
+			updatedVertexInfo.count += axisPoints[axis][axisPosition].count;
+			axisPoints[axis].insert({ axisPosition, updatedVertexInfo });
+		}
+	}
+	else
+	{
+		axisPoints[axis].insert({ axisPosition, vertexInfo });
+	}
+}
+
+void InsertIntersectionPoints(EventPoints& basicPoints, EventPoints& scanPoints)
+{
+	for (auto& basicPoint : basicPoints)
+	{
+		int state = 0;
+		SideType currSide;
+		PointType currPoint;
+
+		for (auto& scanPoint : scanPoints)
+		{
+			if (basicPoint.second.count(scanPoint.first) && basicPoint.second[scanPoint.first].count > 0)
+			{
+				if (basicPoint.second[scanPoint.first].pointType == PointType::Begin)
+				{
+					state += basicPoint.second[scanPoint.first].count;
+				}
+				else if (basicPoint.second[scanPoint.first].pointType == PointType::End)
+				{
+					state -= basicPoint.second[scanPoint.first].count;
+				}
+
+				currSide = basicPoint.second[scanPoint.first].sideType;
+				if (currSide == SideType::Left)
+				{
+					currPoint = PointType::IntersectionBegin;
+				}
+				else if (currSide == SideType::Right)
+				{
+					currPoint = PointType::IntersectionEnd;
+				}
+			}
+
+			if (state > 0)
+			{
+				scanPoint.second.insert({ basicPoint.first, { 1, currPoint, currSide } });
+			}
+		}
+	}
 }
