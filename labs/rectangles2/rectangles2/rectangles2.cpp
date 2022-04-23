@@ -111,14 +111,27 @@ int main()
 		int state = 0;
 		SideType currSide;
 		PointType currPoint;
+
 		for (auto& yPoint: yPoints)
-		{ 
+		{
+			currSide = xPoint.second[yPoint.first].sideType;
+			if (currSide == SideType::Left)
+			{
+				currPoint = PointType::IntersectionBegin;
+			}
+			else if (currSide == SideType::Right)
+			{
+				currPoint = PointType::IntersectionEnd;
+			}
+
 			if (state > 0)
 			{
-				yPoint.second.insert({ xPoint.first, { currPoint, currSide } });
-			}
-			else if (state < 0)
-			{
+				// TODO: ситуация, когда мы встречаем противоположное пересечение в этой же точке
+				// TOTHINK: может ли быть такая ситуация, когда удаление этой точки приведет к неправильному поведению при наличии третьего пересечения
+				if (yPoint.second.count(xPoint.first) && yPoint.second[xPoint.first].pointType != currPoint)
+				{
+					
+				}
 				yPoint.second.insert({ xPoint.first, { currPoint, currSide } });
 			}
 			if (xPoint.second.count(yPoint.first))
@@ -126,20 +139,10 @@ int main()
 				if (xPoint.second[yPoint.first].pointType == PointType::Begin)
 				{
 					state += 1;
-					
 				}
 				else if (xPoint.second[yPoint.first].pointType == PointType::End)
 				{
 					state -= 1;
-				}
-				currSide = xPoint.second[yPoint.first].sideType;
-				if (currSide == SideType::Left)
-				{
-					currPoint = PointType::IntersectionBegin;
-				}
-				else if (currSide == SideType::Right)
-				{
-					currPoint = PointType::IntersectionEnd;
 				}
 			}
 		}
@@ -334,7 +337,6 @@ void InsertVertexPoint(int axis, EventPoints& axisPoints, int axisPosition, cons
 		axisPoints[axis][axisPosition].pointType != vertexInfo.pointType)
 	{
 		axisPoints[axis].erase(axisPosition);
-		normalAxisPoints[axisPosition].erase(axis);
 	}
 	else
 	{
