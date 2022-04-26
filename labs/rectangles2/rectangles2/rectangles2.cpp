@@ -16,10 +16,8 @@ enum class PointType
 {
 	Begin,
 	End,
-	BeginEnd,
 	IntersectionBegin,
 	IntersectionEnd,
-	IntersectionBeginEnd,
 };
 
 enum class SideType
@@ -45,6 +43,7 @@ struct Point
 
 struct VertexInfo
 {
+	int RectangleId;
 	PointType pointType;
 	SideType sideType;
 };
@@ -55,12 +54,13 @@ struct Dimensions
 	int height;
 };
 // pos PointType
-typedef std::map<int, VertexInfo> VertexPoint;
-typedef std::map<int, VertexPoint> EventPoints;
+typedef std::map<int, std::vector<VertexInfo>> AxisPosition;
+typedef std::map<int, AxisPosition> EventPointsMap;
 
 Dimensions GetDimensions(Point& A, Point& C);
 bool ValidateFile(const std::ifstream& inputFile);
-void InsertVertexPoint(int axis, EventPoints& axisPoints, int axisPosition, const VertexInfo& vertexInfo, EventPoints& normalAxisPoints);
+void InsertVertexPoint(int axis, EventPointsMap& axisPoints, int axisPosition,
+	const VertexInfo& vertexInfo);
 
 int main()
 {
@@ -74,10 +74,10 @@ int main()
 	int N; //rectangles number
 	inputFile >> N;
 
-	EventPoints yPoints;
-	EventPoints xPoints;
+	EventPointsMap yPoints;
+	EventPointsMap xPoints;
 
-	for (int i = 0; i < N; ++i)
+	for (int rectangleId = 0; rectangleId < N; ++rectangleId)
 	{
 		Point A;
 		Point C;
@@ -85,227 +85,15 @@ int main()
 		Dimensions dimensions = GetDimensions(A, C);
 		Point B = { A.x + dimensions.width, A.y };
 		Point D = { A.x, A.y + dimensions.height };
-		/*
-		yPoints[A.y].insert({ A.x, { PointType::Begin, SideType::Up } });
-		yPoints[A.y].insert({ B.x, { PointType::End, SideType::Up } });
-		yPoints[C.y].insert({ C.x, { PointType::End, SideType::Down } });
-		yPoints[C.y].insert({ D.x, { PointType::Begin, SideType::Down } });
-		xPoints[A.x].insert({ A.y, { PointType::End, SideType::Left } });
-		xPoints[B.x].insert({ B.y, { PointType::End, SideType::Right } });
-		xPoints[C.x].insert({ C.y, { PointType::Begin, SideType::Right } });
-		xPoints[D.x].insert({ D.y, { PointType::Begin, SideType::Left } });
-		*/
-
-		InsertVertexPoint(A.y, yPoints, A.x, { PointType::Begin, SideType::Up }, xPoints);
-		InsertVertexPoint(A.y, yPoints, B.x, { PointType::End, SideType::Up }, xPoints);
-		InsertVertexPoint(C.y, yPoints, C.x, { PointType::End, SideType::Down }, xPoints);
-		InsertVertexPoint(C.y, yPoints, D.x, { PointType::Begin, SideType::Down }, xPoints);
-		InsertVertexPoint(A.x, xPoints, A.y, { PointType::End, SideType::Left }, yPoints);
-		InsertVertexPoint(B.x, xPoints, B.y, { PointType::End, SideType::Right }, yPoints);
-		InsertVertexPoint(C.x, xPoints, C.y, { PointType::Begin, SideType::Right }, yPoints);
-		InsertVertexPoint(D.x, xPoints, D.y, { PointType::Begin, SideType::Left }, yPoints);
+		InsertVertexPoint(A.y, yPoints, A.x, { rectangleId, PointType::Begin, SideType::Up });
+		InsertVertexPoint(A.y, yPoints, B.x, { rectangleId, PointType::End, SideType::Up });
+		InsertVertexPoint(C.y, yPoints, C.x, { rectangleId, PointType::End, SideType::Down });
+		InsertVertexPoint(C.y, yPoints, D.x, { rectangleId, PointType::Begin, SideType::Down });
+		InsertVertexPoint(A.x, xPoints, A.y, { rectangleId, PointType::End, SideType::Left });
+		InsertVertexPoint(B.x, xPoints, B.y, { rectangleId, PointType::End, SideType::Right });
+		InsertVertexPoint(C.x, xPoints, C.y, { rectangleId, PointType::Begin, SideType::Right });
+		InsertVertexPoint(D.x, xPoints, D.y, { rectangleId, PointType::Begin, SideType::Left });
 	}
-	
-	for (auto& xPoint: xPoints)
-	{
-		int state = 0;
-		SideType currSide;
-		PointType currPoint;
-
-		for (auto& yPoint: yPoints)
-		{
-			currSide = xPoint.second[yPoint.first].sideType;
-			if (currSide == SideType::Left)
-			{
-				currPoint = PointType::IntersectionBegin;
-			}
-			else if (currSide == SideType::Right)
-			{
-				currPoint = PointType::IntersectionEnd;
-			}
-
-			if (state > 0)
-			{
-				// TODO: ситуация, когда мы встречаем противоположное пересечение в этой же точке
-				// TOTHINK: может ли быть такая ситуация, когда удаление этой точки приведет к неправильному поведению при наличии третьего пересечения
-				if (yPoint.second.count(xPoint.first) && yPoint.second[xPoint.first].pointType != currPoint)
-				{
-					
-				}
-				yPoint.second.insert({ xPoint.first, { currPoint, currSide } });
-			}
-			if (xPoint.second.count(yPoint.first))
-			{
-				if (xPoint.second[yPoint.first].pointType == PointType::Begin)
-				{
-					state += 1;
-				}
-				else if (xPoint.second[yPoint.first].pointType == PointType::End)
-				{
-					state -= 1;
-				}
-			}
-		}
-	}
-
-	for (auto& yPoint : yPoints)
-	{
-		int state = 0;
-		SideType currSide;
-		PointType currPoint;
-		for (auto& xPoint : xPoints)
-		{
-			if (state > 0)
-			{
-				xPoint.second.insert({ yPoint.first, { currPoint, currSide } });
-			}
-			else if (state < 0)
-			{
-				xPoint.second.insert({ yPoint.first, { currPoint, currSide } });
-			}
-			if (yPoint.second.count(xPoint.first))
-			{
-				if (yPoint.second[xPoint.first].pointType == PointType::Begin)
-				{
-					state += 1;
-				}
-				else if (yPoint.second[xPoint.first].pointType == PointType::End)
-				{
-					state -= 1;
-				}
-				currSide = yPoint.second[xPoint.first].sideType;
-				if (currSide == SideType::Down)
-				{
-					currPoint = PointType::IntersectionBegin;
-				}
-				else if (currSide == SideType::Up)
-				{
-					currPoint = PointType::IntersectionEnd;
-				}
-			}
-		}
-	}
-	int xResult = 0;
-
-	std::pair<int, VertexInfo> lastSafePoint;
-	for (auto& xPoint: xPoints)
-	{
-		int sideState = 0;
-		int intersectionState = 0;
-		for (auto& point : xPoint.second)
-		{
-			if (point.second.pointType == PointType::IntersectionBegin)
-			{
-				
-				if (sideState > 0 && !intersectionState)
-				{
-					xResult += point.first - lastSafePoint.first;
-				}
-				intersectionState += 1;
-			}
-			else if (point.second.pointType == PointType::IntersectionEnd)
-			{
-				intersectionState -= 1;
-				if (sideState > 0)
-				{
-					lastSafePoint = point;
-				}
-			}
-			if (!intersectionState)
-			{
-				if (point.second.pointType == PointType::Begin)
-				{
-					if (sideState == 0)
-					{
-						lastSafePoint = point;
-					}
-					sideState += 1;
-				}
-				else if (point.second.pointType == PointType::End)
-				{
-					if (sideState > 1)
-					{
-						lastSafePoint = point;
-					}
-					sideState -= 1;
-					xResult += point.first - lastSafePoint.first;
-				}
-			}
-			else
-			{
-				if (point.second.pointType == PointType::Begin)
-				{
-					sideState += 1;
-				}
-				else if (point.second.pointType == PointType::End)
-				{
-					sideState -= 1;
-				}
-			}
-		}
-	}
-
-	int yResult = 0;
-
-	for (auto& yPoint : yPoints)
-	{
-		int sideState = 0;
-		int intersectionState = 0;
-		std::pair<int, VertexInfo> lastSafePoint;
-		for (auto& point : yPoint.second)
-		{
-			if (point.second.pointType == PointType::IntersectionBegin)
-			{
-
-				if (sideState > 0 && !intersectionState)
-				{
-					yResult += point.first - lastSafePoint.first;
-				}
-				intersectionState += 1;
-			}
-			else if (point.second.pointType == PointType::IntersectionEnd)
-			{
-				intersectionState -= 1;
-				if (sideState > 0)
-				{
-					lastSafePoint = point;
-				}
-			}
-			if (!intersectionState)
-			{
-				if (point.second.pointType == PointType::Begin)
-				{
-					if (sideState == 0)
-					{
-						lastSafePoint = point;
-					}
-					sideState += 1;
-				}
-				else if (point.second.pointType == PointType::End)
-				{
-					if (sideState > 1)
-					{
-						lastSafePoint = point;
-					}
-					sideState -= 1;
-					yResult += point.first - lastSafePoint.first;
-				}
-			}
-			else
-			{
-				if (point.second.pointType == PointType::Begin)
-				{
-					sideState += 1;
-				}
-				else if (point.second.pointType == PointType::End)
-				{
-					sideState -= 1;
-				}
-			}
-		}
-	}
-
-	int result = xResult + yResult;
 
 	return 0;
 }
@@ -331,15 +119,41 @@ Dimensions GetDimensions(Point& A, Point& C)
 	return result;
 }
 
-void InsertVertexPoint(int axis, EventPoints& axisPoints, int axisPosition, const VertexInfo& vertexInfo, EventPoints& normalAxisPoints)
+void InsertVertexPoint(int axis, EventPointsMap& axisPoints, int axisPosition,
+	const VertexInfo& vertexInfo)
 {
-	if (axisPoints[axis].count(axisPosition) && 
-		axisPoints[axis][axisPosition].pointType != vertexInfo.pointType)
-	{
-		axisPoints[axis].erase(axisPosition);
-	}
-	else
-	{
-		axisPoints[axis].insert({ axisPosition, vertexInfo });
-	}
+	axisPoints[axis][axisPosition].push_back(vertexInfo);
 }
+
+void FindIntersectionPoints(EventPointsMap& mainPoints, EventPointsMap& axisPoints)
+{
+	for (auto& mainPoint : mainPoints)
+	{
+		int state = 0;
+		SideType currSide;
+		PointType currPoint;
+
+		for (auto& axisPoint : axisPoints)
+		{
+			for (auto& scanLine : axisPoint.second)
+			{
+				for (auto& vertexPoint : scanLine.second)
+				{
+					if (vertexPoint.pointType == PointType::Begin)
+					{
+						state += 1;
+						currSide = vertexPoint.sideType;
+					}
+					else if (vertexPoint.pointType == PointType::End)
+					{
+						state -= 1;
+					}
+				}
+			}
+			if (mainPoints.count(axisPoint.first))
+			{
+				//if (state)
+			}
+		}
+	}
+	}
