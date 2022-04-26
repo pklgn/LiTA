@@ -1,11 +1,11 @@
-// rectangles2.cpp : This file contains the 'main' function. Program execution begins and ends there.
+﻿// rectangles2.cpp : This file contains the 'main' function. Program execution begins and ends there.
 //
 
-#include <iostream>
-#include <fstream>
-#include <vector>
-#include <map>
 #include <algorithm>
+#include <fstream>
+#include <iostream>
+#include <map>
+#include <vector>
 
 const std::string INPUT_FILE_NAME = "INPUT.TXT";
 const std::string OUTPUT_FILE_NAME = "OUTPUT.TXT";
