@@ -132,6 +132,7 @@ void FindIntersectionPoints(EventPointsMap& mainPoints, EventPointsMap& axisPoin
 		int state = 0;
 		SideType currSide;
 		PointType currPoint;
+		std::map<int, std::vector<VertexInfo>> currVertexVec;
 
 		for (auto& axisPoint : axisPoints)
 		{
@@ -142,18 +143,16 @@ void FindIntersectionPoints(EventPointsMap& mainPoints, EventPointsMap& axisPoin
 					if (vertexPoint.pointType == PointType::Begin)
 					{
 						state += 1;
-						currSide = vertexPoint.sideType;
+						currVertexVec.insert(scanLine);
 					}
 					else if (vertexPoint.pointType == PointType::End)
 					{
 						state -= 1;
 					}
+
 				}
 			}
-			if (mainPoints.count(axisPoint.first))
-			{
-				//if (state)
-			}
+			
 		}
 	}
 	}
