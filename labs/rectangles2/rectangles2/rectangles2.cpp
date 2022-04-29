@@ -43,9 +43,8 @@ struct Point
 
 struct VertexInfo
 {
-	int RectangleId;
+	int rectangleId;
 	PointType pointType;
-	SideType sideType;
 };
 
 struct Dimensions
@@ -53,14 +52,21 @@ struct Dimensions
 	int width;
 	int height;
 };
-// pos PointType
-typedef std::map<int, std::vector<VertexInfo>> AxisPosition;
-typedef std::map<int, AxisPosition> EventPointsMap;
+
+struct Rectangle
+{
+	Point LUVertex;
+	Dimensions dimensions;
+};
+
+typedef std::vector<Rectangle> Rectagles;
+typedef std::map<int, std::vector<VertexInfo>> EventPointsMap;
 
 Dimensions GetDimensions(Point& A, Point& C);
 bool ValidateFile(const std::ifstream& inputFile);
 void InsertVertexPoint(int axis, EventPointsMap& axisPoints, int axisPosition,
 	const VertexInfo& vertexInfo);
+void FindIntersectionPoints(EventPointsMap& mainPoints, EventPointsMap& axisPoints);
 
 int main()
 {
@@ -74,6 +80,7 @@ int main()
 	int N; //rectangles number
 	inputFile >> N;
 
+	Rectagles rectangles;
 	EventPointsMap yPoints;
 	EventPointsMap xPoints;
 
@@ -84,15 +91,26 @@ int main()
 		inputFile >> A >> C;
 		Dimensions dimensions = GetDimensions(A, C);
 		Point B = { A.x + dimensions.width, A.y };
-		Point D = { A.x, A.y + dimensions.height };
-		InsertVertexPoint(A.y, yPoints, A.x, { rectangleId, PointType::Begin, SideType::Up });
-		InsertVertexPoint(A.y, yPoints, B.x, { rectangleId, PointType::End, SideType::Up });
-		InsertVertexPoint(C.y, yPoints, C.x, { rectangleId, PointType::End, SideType::Down });
-		InsertVertexPoint(C.y, yPoints, D.x, { rectangleId, PointType::Begin, SideType::Down });
-		InsertVertexPoint(A.x, xPoints, A.y, { rectangleId, PointType::End, SideType::Left });
-		InsertVertexPoint(B.x, xPoints, B.y, { rectangleId, PointType::End, SideType::Right });
-		InsertVertexPoint(C.x, xPoints, C.y, { rectangleId, PointType::Begin, SideType::Right });
-		InsertVertexPoint(D.x, xPoints, D.y, { rectangleId, PointType::Begin, SideType::Left });
+		rectangles.push_back({ A, dimensions });
+		
+		yPoints[A.x].push_back({ rectangleId, PointType::Begin });
+		yPoints[B.x].push_back({ rectangleId, PointType::End });
+		xPoints[C.y].push_back({ rectangleId, PointType::Begin });
+		xPoints[B.y].push_back({ rectangleId, PointType::End });
+	}
+
+	EventPointsMap currXPoints;
+	for (auto& yPoint : yPoints)
+	{
+		for (auto& vertex: yPoint.second)
+		{
+			if (vertex.pointType == PointType::Begin)
+			{
+				const Rectangle rectangle = rectangles[vertex.rectangleId];
+				currXPoints[rectangle.LUVertex.y].push_back({ vertex.rectangleId, PointType::End });
+				currXPoints[rectangle.LUVertex.y - rectangle.dimensions.height].push_back({ vertex.rectangleId, PointType::Begin });
+			}
+		}
 	}
 
 	return 0;
@@ -118,41 +136,3 @@ Dimensions GetDimensions(Point& A, Point& C)
 
 	return result;
 }
-
-void InsertVertexPoint(int axis, EventPointsMap& axisPoints, int axisPosition,
-	const VertexInfo& vertexInfo)
-{
-	axisPoints[axis][axisPosition].push_back(vertexInfo);
-}
-
-void FindIntersectionPoints(EventPointsMap& mainPoints, EventPointsMap& axisPoints)
-{
-	for (auto& mainPoint : mainPoints)
-	{
-		int state = 0;
-		SideType currSide;
-		PointType currPoint;
-		std::map<int, std::vector<VertexInfo>> currVertexVec;
-
-		for (auto& axisPoint : axisPoints)
-		{
-			for (auto& scanLine : axisPoint.second)
-			{
-				for (auto& vertexPoint : scanLine.second)
-				{
-					if (vertexPoint.pointType == PointType::Begin)
-					{
-						state += 1;
-						currVertexVec.insert(scanLine);
-					}
-					else if (vertexPoint.pointType == PointType::End)
-					{
-						state -= 1;
-					}
-
-				}
-			}
-			
-		}
-	}
-	}
