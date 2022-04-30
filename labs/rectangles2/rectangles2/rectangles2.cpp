@@ -1,7 +1,6 @@
 ﻿// rectangles2.cpp : This file contains the 'main' function. Program execution begins and ends there.
 //
 
-#include <algorithm>
 #include <fstream>
 #include <iostream>
 #include <map>
@@ -51,10 +50,16 @@ typedef std::vector<Rectangle> Rectangles;
 typedef std::map<int, PointType> VertexPoints;
 typedef std::map<int, VertexPoints> AxisPoints;
 
-Dimensions GetDimensions(Point& A, Point& C);
+struct Coordinates
+{
+	AxisPoints yPoints;
+	AxisPoints xPoints;
+};
+
 bool ValidateFile(const std::ifstream& inputFile);
 int GetAxisPerimeter(const AxisPoints& axisPoints, const Rectangles& rectangles, const ScanMode mode);
 void ProcessAxisPoint(const VertexPoints& vertexPoints, AxisPoints& currAxisPoints, const Rectangles& rectangles, const ScanMode mode);
+void ReadRectangles(std::ifstream& inputFile, Rectangles& rectangles, Coordinates& coordinates);
 
 int main()
 {
@@ -65,30 +70,20 @@ int main()
 		return 1;
 	}
 
-	int N;
-	inputFile >> N;
-
 	Rectangles rectangles;
-	AxisPoints yPoints;
-	AxisPoints xPoints;
+	Coordinates coordinates;
 
-	for (int rectangleId = 0; rectangleId < N; ++rectangleId)
-	{
-		Point A;
-		Point C;
-		inputFile >> A >> C;
-		Dimensions dimensions = GetDimensions(A, C);
-		Point B = { A.x + dimensions.width, A.y };
-		rectangles.push_back({ A, dimensions });
-		
-		yPoints[A.x].emplace(rectangleId, PointType::Begin);
-		yPoints[B.x].emplace(rectangleId, PointType::End);
-		xPoints[C.y].emplace(rectangleId, PointType::Begin);
-		xPoints[B.y].emplace(rectangleId, PointType::End);
-	}
+	ReadRectangles(inputFile, rectangles, coordinates);
 
-	std::cout << GetAxisPerimeter(yPoints, rectangles, ScanMode::Horizontally) << std::endl;
-	std::cout << GetAxisPerimeter(xPoints, rectangles, ScanMode::Vertically) << std::endl;
+	int perimeter = GetAxisPerimeter(coordinates.yPoints, rectangles, ScanMode::Horizontally) + 
+		GetAxisPerimeter(coordinates.xPoints, rectangles, ScanMode::Vertically);
+
+	std::ofstream outputFile(OUTPUT_FILE_NAME);
+	outputFile << perimeter << std::endl;
+
+	#ifdef _DEBUG
+	std::cout << perimeter << std::endl;
+	#endif
 
 	return 0;
 }
@@ -105,18 +100,9 @@ bool ValidateFile(const std::ifstream& inputFile)
 	return true;
 }
 
-Dimensions GetDimensions(Point& A, Point& C)
-{
-	Dimensions result;
-	result.width = C.x - A.x;
-	result.height = A.y - C.y;
-
-	return result;
-}
 int GetMultiplicity(AxisPoints& normAxisPoints);
-void ProcessAxisPoint(const VertexPoints& vertexPoints, AxisPoints& currAxisPoints, 
+void ProcessAxisPoint(VertexPoints& vertexPoints, AxisPoints& currAxisPoints, 
 	const Rectangles& rectangles, const ScanMode mode);
-
 int GetAxisPerimeter(const AxisPoints& axisPoints, const Rectangles& rectangles, const ScanMode mode)
 {
 	int prevPos = INT_MAX;
@@ -141,28 +127,29 @@ int GetAxisPerimeter(const AxisPoints& axisPoints, const Rectangles& rectangles,
 
 int GetMultiplicity(AxisPoints& normAxisPoints)
 {
-	int axisN = 0;
-	int state = 0;
-	for (auto& currAxisPoint : normAxisPoints)
+	int multiplicity = 0;
+	int scanState = 0;
+
+	for (auto& normAxisPoint : normAxisPoints)
 	{
-		for (auto& currVertex : currAxisPoint.second)
+		for (auto& vertex : normAxisPoint.second)
 		{
-			if (currVertex.second == PointType::Begin)
+			if (vertex.second == PointType::Begin)
 			{
-				++state;
+				++scanState;
 			}
-			else if (currVertex.second == PointType::End)
+			else if (vertex.second == PointType::End)
 			{
-				--state;
+				--scanState;
 			}
 		}
-		if (state == 0 && currAxisPoint.second.size() != 0)
+		if (scanState == 0 && normAxisPoint.second.size() != 0)
 		{
-			++axisN;
+			++multiplicity;
 		}
 	}
 
-	return axisN;
+	return multiplicity;
 }
 
 void ProcessAxisPoint(const VertexPoints& vertexPoints, AxisPoints& normAxisPoints, 
@@ -210,9 +197,12 @@ void ProcessAxisPoint(const VertexPoints& vertexPoints, AxisPoints& normAxisPoin
 			normAxisPoints[startPos + deltaPos].erase(vertexPoint.first);
 		}
 	}
+
+	return;
 }
 
-void ReadRectangles(std::ifstream& inputFile, Rectangles& rectangles, AxisPoints& yPoints, AxisPoints& xPoints)
+Dimensions GetDimensions(Point& A, Point& C);
+void ReadRectangles(std::ifstream& inputFile, Rectangles& rectangles, Coordinates& coordinates)
 {
 	int N;
 	inputFile >> N;
@@ -226,9 +216,20 @@ void ReadRectangles(std::ifstream& inputFile, Rectangles& rectangles, AxisPoints
 		Point B = { A.x + dimensions.width, A.y };
 		rectangles.push_back({ A, dimensions });
 
-		yPoints[A.x].emplace(rectangleId, PointType::Begin);
-		yPoints[B.x].emplace(rectangleId, PointType::End);
-		xPoints[C.y].emplace(rectangleId, PointType::Begin);
-		xPoints[B.y].emplace(rectangleId, PointType::End);
+		coordinates.yPoints[A.x].emplace(rectangleId, PointType::Begin);
+		coordinates.yPoints[B.x].emplace(rectangleId, PointType::End);
+		coordinates.xPoints[C.y].emplace(rectangleId, PointType::Begin);
+		coordinates.xPoints[B.y].emplace(rectangleId, PointType::End);
 	}
+
+	return;
+}
+
+Dimensions GetDimensions(Point& A, Point& C)
+{
+	Dimensions result;
+	result.width = C.x - A.x;
+	result.height = A.y - C.y;
+
+	return result;
 }
