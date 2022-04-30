@@ -10,20 +10,10 @@
 const std::string INPUT_FILE_NAME = "INPUT.TXT";
 const std::string OUTPUT_FILE_NAME = "OUTPUT.TXT";
 
-typedef std::pair<int, int> RectangleSide;
-
 enum class PointType
 {
 	Begin,
 	End,
-};
-
-enum class SideType
-{
-	Left,
-	Up,
-	Right,
-	Down,
 };
 
 enum class ScanMode
@@ -45,12 +35,6 @@ struct Point
 	}
 };
 
-struct VertexInfo
-{
-	int rectangleId;
-	PointType pointType;
-};
-
 struct Dimensions
 {
 	int width;
@@ -64,11 +48,13 @@ struct Rectangle
 };
 
 typedef std::vector<Rectangle> Rectangles;
-typedef std::map<int, std::map<int, PointType>> EventPointsMap;
+typedef std::map<int, PointType> VertexPoints;
+typedef std::map<int, VertexPoints> AxisPoints;
 
 Dimensions GetDimensions(Point& A, Point& C);
 bool ValidateFile(const std::ifstream& inputFile);
-int GetAxisPerimeter(EventPointsMap& axisPoints, Rectangles& rectangles, ScanMode mode);
+int GetAxisPerimeter(const AxisPoints& axisPoints, const Rectangles& rectangles, const ScanMode mode);
+void ProcessAxisPoint(const VertexPoints& vertexPoints, AxisPoints& currAxisPoints, const Rectangles& rectangles, const ScanMode mode);
 
 int main()
 {
@@ -79,12 +65,12 @@ int main()
 		return 1;
 	}
 
-	int N; //rectangles number
+	int N;
 	inputFile >> N;
 
 	Rectangles rectangles;
-	EventPointsMap yPoints;
-	EventPointsMap xPoints;
+	AxisPoints yPoints;
+	AxisPoints xPoints;
 
 	for (int rectangleId = 0; rectangleId < N; ++rectangleId)
 	{
@@ -127,66 +113,122 @@ Dimensions GetDimensions(Point& A, Point& C)
 
 	return result;
 }
+int GetMultiplicity(AxisPoints& normAxisPoints);
+void ProcessAxisPoint(const VertexPoints& vertexPoints, AxisPoints& currAxisPoints, 
+	const Rectangles& rectangles, const ScanMode mode);
 
-int GetAxisPerimeter(EventPointsMap& axisPoints, Rectangles& rectangles, ScanMode mode)
+int GetAxisPerimeter(const AxisPoints& axisPoints, const Rectangles& rectangles, const ScanMode mode)
 {
-	EventPointsMap currAxisPoints;
-	int axisPerimeter = 0;
 	int prevPos = INT_MAX;
+	int axisPerimeter = 0;
+	AxisPoints normAxisPoints;
+
 	for (auto& axisPoint : axisPoints)
 	{
-		int axisN = 0;
-		int state = 0;
-		for (auto& currXPoint : currAxisPoints)
-		{
-			for (auto& currVertex : currXPoint.second)
-			{
-				if (currVertex.second == PointType::Begin)
-				{
-					++state;
-				}
-				else if (currVertex.second == PointType::End)
-				{
-					--state;
-				}
-			}
-			if (state == 0 && currXPoint.second.size() != 0)
-			{
-				++axisN;
-			}
-		}
+		int axisN = GetMultiplicity(normAxisPoints);
+
 		if (prevPos != INT_MAX)
 		{
 			axisPerimeter += 2 * (axisPoint.first - prevPos) * axisN;
 		}
 
-		for (auto& vertex : axisPoint.second)
-		{
-			const Rectangle rectangle = rectangles[vertex.first];
-			int LUVertexPos = mode == ScanMode::Horizontally ? rectangle.LUVertex.y : rectangle.LUVertex.x;
-			int deltaPos = mode == ScanMode::Horizontally ? -rectangle.dimensions.height : rectangle.dimensions.width;
-
-			if (vertex.second == PointType::Begin)
-			{
-				if (mode == ScanMode::Horizontally)
-				{
-					currAxisPoints[LUVertexPos].emplace(vertex.first, PointType::End);
-					currAxisPoints[LUVertexPos + deltaPos].emplace(vertex.first, PointType::Begin);
- 				}
-				else
-				{
-					currAxisPoints[LUVertexPos].emplace(vertex.first, PointType::Begin);
-					currAxisPoints[LUVertexPos + deltaPos].emplace(vertex.first, PointType::End);
-				}
-			}
-			else
-			{
-				currAxisPoints[LUVertexPos].erase(vertex.first);
-				currAxisPoints[LUVertexPos + deltaPos].erase(vertex.first);
-			}
-		}
+		ProcessAxisPoint(axisPoint.second, normAxisPoints, rectangles, mode);
 		prevPos = axisPoint.first;
 	}
 
 	return axisPerimeter;
+}
+
+int GetMultiplicity(AxisPoints& normAxisPoints)
+{
+	int axisN = 0;
+	int state = 0;
+	for (auto& currAxisPoint : normAxisPoints)
+	{
+		for (auto& currVertex : currAxisPoint.second)
+		{
+			if (currVertex.second == PointType::Begin)
+			{
+				++state;
+			}
+			else if (currVertex.second == PointType::End)
+			{
+				--state;
+			}
+		}
+		if (state == 0 && currAxisPoint.second.size() != 0)
+		{
+			++axisN;
+		}
+	}
+
+	return axisN;
+}
+
+void ProcessAxisPoint(const VertexPoints& vertexPoints, AxisPoints& normAxisPoints, 
+	const Rectangles& rectangles, const ScanMode mode)
+{
+	for (auto& vertexPoint : vertexPoints)
+	{
+		int startPos;
+		int deltaPos;
+		const Rectangle rectangle = rectangles[vertexPoint.first];
+
+		switch (mode)
+		{
+		case ScanMode::Vertically:
+			startPos = rectangle.LUVertex.x;
+			deltaPos = rectangle.dimensions.width;
+			break;
+		case ScanMode::Horizontally:
+			startPos = rectangle.LUVertex.y;
+			deltaPos = -rectangle.dimensions.height;
+			break;
+		default:
+			return;
+		}
+
+		if (vertexPoint.second == PointType::Begin)
+		{
+			switch (mode)
+			{
+			case ScanMode::Vertically:
+				normAxisPoints[startPos].emplace(vertexPoint.first, PointType::Begin);
+				normAxisPoints[startPos + deltaPos].emplace(vertexPoint.first, PointType::End);
+				break;
+			case ScanMode::Horizontally:
+				normAxisPoints[startPos].emplace(vertexPoint.first, PointType::End);
+				normAxisPoints[startPos + deltaPos].emplace(vertexPoint.first, PointType::Begin);
+				break;
+			default:
+				return;
+			}
+		}
+		else
+		{
+			normAxisPoints[startPos].erase(vertexPoint.first);
+			normAxisPoints[startPos + deltaPos].erase(vertexPoint.first);
+		}
+	}
+}
+
+void ReadRectangles(std::ifstream& inputFile, Rectangles& rectangles, AxisPoints& yPoints, AxisPoints& xPoints)
+{
+	int N;
+	inputFile >> N;
+
+	for (int rectangleId = 0; rectangleId < N; ++rectangleId)
+	{
+		Point A;
+		Point C;
+		inputFile >> A >> C;
+		Dimensions dimensions = GetDimensions(A, C);
+		Point B = { A.x + dimensions.width, A.y };
+		rectangles.push_back({ A, dimensions });
+
+		yPoints[A.x].emplace(rectangleId, PointType::Begin);
+		yPoints[B.x].emplace(rectangleId, PointType::End);
+		xPoints[C.y].emplace(rectangleId, PointType::Begin);
+		xPoints[B.y].emplace(rectangleId, PointType::End);
+	}
 }
