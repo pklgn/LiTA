@@ -101,7 +101,8 @@ int main()
 		xPoints[B.y].emplace(rectangleId, PointType::End);
 	}
 
-	std::cout << GetAxisPerimeter(xPoints, rectangles, ScanMode::Vertically) + GetAxisPerimeter(yPoints, rectangles, ScanMode::Horizontally) << std::endl;
+	std::cout << GetAxisPerimeter(yPoints, rectangles, ScanMode::Horizontally) << std::endl;
+	std::cout << GetAxisPerimeter(xPoints, rectangles, ScanMode::Vertically) << std::endl;
 
 	return 0;
 }
@@ -144,14 +145,14 @@ int GetAxisPerimeter(EventPointsMap& axisPoints, Rectangles& rectangles, ScanMod
 				{
 					++state;
 				}
-				else
+				else if (currVertex.second == PointType::End)
 				{
 					--state;
 				}
-				if (state == 0)
-				{
-					++axisN;
-				}
+			}
+			if (state == 0 && currXPoint.second.size() != 0)
+			{
+				++axisN;
 			}
 		}
 		if (prevPos != INT_MAX)
@@ -163,17 +164,25 @@ int GetAxisPerimeter(EventPointsMap& axisPoints, Rectangles& rectangles, ScanMod
 		{
 			const Rectangle rectangle = rectangles[vertex.first];
 			int LUVertexPos = mode == ScanMode::Horizontally ? rectangle.LUVertex.y : rectangle.LUVertex.x;
-			int deltaPos = mode == ScanMode::Horizontally ? rectangle.dimensions.height : rectangle.dimensions.width;
+			int deltaPos = mode == ScanMode::Horizontally ? -rectangle.dimensions.height : rectangle.dimensions.width;
 
 			if (vertex.second == PointType::Begin)
 			{
-				currAxisPoints[LUVertexPos].emplace(vertex.first, PointType::Begin);
-				currAxisPoints[LUVertexPos + deltaPos].emplace(vertex.first, PointType::End);
+				if (mode == ScanMode::Horizontally)
+				{
+					currAxisPoints[LUVertexPos].emplace(vertex.first, PointType::End);
+					currAxisPoints[LUVertexPos + deltaPos].emplace(vertex.first, PointType::Begin);
+ 				}
+				else
+				{
+					currAxisPoints[LUVertexPos].emplace(vertex.first, PointType::Begin);
+					currAxisPoints[LUVertexPos + deltaPos].emplace(vertex.first, PointType::End);
+				}
 			}
 			else
 			{
 				currAxisPoints[LUVertexPos].erase(vertex.first);
-				currAxisPoints[LUVertexPos - deltaPos].erase(vertex.first);
+				currAxisPoints[LUVertexPos + deltaPos].erase(vertex.first);
 			}
 		}
 		prevPos = axisPoint.first;
