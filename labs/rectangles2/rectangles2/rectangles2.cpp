@@ -16,8 +16,6 @@ enum class PointType
 {
 	Begin,
 	End,
-	IntersectionBegin,
-	IntersectionEnd,
 };
 
 enum class SideType
@@ -26,6 +24,12 @@ enum class SideType
 	Up,
 	Right,
 	Down,
+};
+
+enum class ScanMode
+{
+	Vertically,
+	Horizontally
 };
 
 struct Point
@@ -59,14 +63,12 @@ struct Rectangle
 	Dimensions dimensions;
 };
 
-typedef std::vector<Rectangle> Rectagles;
-typedef std::map<int, std::vector<VertexInfo>> EventPointsMap;
+typedef std::vector<Rectangle> Rectangles;
+typedef std::map<int, std::map<int, PointType>> EventPointsMap;
 
 Dimensions GetDimensions(Point& A, Point& C);
 bool ValidateFile(const std::ifstream& inputFile);
-void InsertVertexPoint(int axis, EventPointsMap& axisPoints, int axisPosition,
-	const VertexInfo& vertexInfo);
-void FindIntersectionPoints(EventPointsMap& mainPoints, EventPointsMap& axisPoints);
+int GetAxisPerimeter(EventPointsMap& axisPoints, Rectangles& rectangles, ScanMode mode);
 
 int main()
 {
@@ -80,7 +82,7 @@ int main()
 	int N; //rectangles number
 	inputFile >> N;
 
-	Rectagles rectangles;
+	Rectangles rectangles;
 	EventPointsMap yPoints;
 	EventPointsMap xPoints;
 
@@ -93,25 +95,13 @@ int main()
 		Point B = { A.x + dimensions.width, A.y };
 		rectangles.push_back({ A, dimensions });
 		
-		yPoints[A.x].push_back({ rectangleId, PointType::Begin });
-		yPoints[B.x].push_back({ rectangleId, PointType::End });
-		xPoints[C.y].push_back({ rectangleId, PointType::Begin });
-		xPoints[B.y].push_back({ rectangleId, PointType::End });
+		yPoints[A.x].emplace(rectangleId, PointType::Begin);
+		yPoints[B.x].emplace(rectangleId, PointType::End);
+		xPoints[C.y].emplace(rectangleId, PointType::Begin);
+		xPoints[B.y].emplace(rectangleId, PointType::End);
 	}
 
-	EventPointsMap currXPoints;
-	for (auto& yPoint : yPoints)
-	{
-		for (auto& vertex: yPoint.second)
-		{
-			if (vertex.pointType == PointType::Begin)
-			{
-				const Rectangle rectangle = rectangles[vertex.rectangleId];
-				currXPoints[rectangle.LUVertex.y].push_back({ vertex.rectangleId, PointType::End });
-				currXPoints[rectangle.LUVertex.y - rectangle.dimensions.height].push_back({ vertex.rectangleId, PointType::Begin });
-			}
-		}
-	}
+	std::cout << GetAxisPerimeter(xPoints, rectangles, ScanMode::Vertically) + GetAxisPerimeter(yPoints, rectangles, ScanMode::Horizontally) << std::endl;
 
 	return 0;
 }
@@ -132,7 +122,62 @@ Dimensions GetDimensions(Point& A, Point& C)
 {
 	Dimensions result;
 	result.width = C.x - A.x;
-	result.height = C.y - A.y;
+	result.height = A.y - C.y;
 
 	return result;
+}
+
+int GetAxisPerimeter(EventPointsMap& axisPoints, Rectangles& rectangles, ScanMode mode)
+{
+	EventPointsMap currAxisPoints;
+	int axisPerimeter = 0;
+	int prevPos = INT_MAX;
+	for (auto& axisPoint : axisPoints)
+	{
+		int axisN = 0;
+		int state = 0;
+		for (auto& currXPoint : currAxisPoints)
+		{
+			for (auto& currVertex : currXPoint.second)
+			{
+				if (currVertex.second == PointType::Begin)
+				{
+					++state;
+				}
+				else
+				{
+					--state;
+				}
+				if (state == 0)
+				{
+					++axisN;
+				}
+			}
+		}
+		if (prevPos != INT_MAX)
+		{
+			axisPerimeter += 2 * (axisPoint.first - prevPos) * axisN;
+		}
+
+		for (auto& vertex : axisPoint.second)
+		{
+			const Rectangle rectangle = rectangles[vertex.first];
+			int LUVertexPos = mode == ScanMode::Horizontally ? rectangle.LUVertex.y : rectangle.LUVertex.x;
+			int deltaPos = mode == ScanMode::Horizontally ? rectangle.dimensions.height : rectangle.dimensions.width;
+
+			if (vertex.second == PointType::Begin)
+			{
+				currAxisPoints[LUVertexPos].emplace(vertex.first, PointType::Begin);
+				currAxisPoints[LUVertexPos + deltaPos].emplace(vertex.first, PointType::End);
+			}
+			else
+			{
+				currAxisPoints[LUVertexPos].erase(vertex.first);
+				currAxisPoints[LUVertexPos - deltaPos].erase(vertex.first);
+			}
+		}
+		prevPos = axisPoint.first;
+	}
+
+	return axisPerimeter;
 }
