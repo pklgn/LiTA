@@ -44,7 +44,7 @@ int main()
 
 	TextSearchInfo searchInfo;
 	ReadSearchInfo(inputFile, searchInfo);
-	//std::transform(searchInfo.text.begin(), searchInfo.text.end(), searchInfo.text.begin(), ::tolower);
+	std::transform(searchInfo.text.begin(), searchInfo.text.end(), searchInfo.text.begin(), ::tolower);
 
 	std::sort(searchInfo.templates.begin(), searchInfo.templates.end(), SearchInfoCompare);
 
@@ -85,8 +85,8 @@ void SetPrefix(TemplateSearchInfo& templateInfo)
 	}
 }
 
-void SearchTemplate(size_t searchPostion, std::string& text, TemplateSearchInfo& templateInfo,
-	SearchOccurrences& results)
+void SearchTemplate(size_t searchPostion, std::string& text, std::string& substring,
+	TemplateSearchInfo& templateInfo, SearchOccurrences& results)
 {
 	size_t k = searchPostion;
 	size_t l = 0;
@@ -104,7 +104,7 @@ void SearchTemplate(size_t searchPostion, std::string& text, TemplateSearchInfo&
 
 	while (k < text.size())
 	{
-		if (text[k] == templateInfo.substring[l])
+		if (text[k] == substring[l])
 		{
 			++k;
 			++l;
@@ -112,7 +112,7 @@ void SearchTemplate(size_t searchPostion, std::string& text, TemplateSearchInfo&
 			{
 				results[k - l].push_back(templateInfo.index);
 				size_t delta = templateInfo.substring.size() - templateInfo.prefix[templateInfo.prefix.size() - 1];
-				SearchTemplate(k - l + delta, text, templateInfo, results);
+				SearchTemplate(k - l + delta, text, substring, templateInfo, results);
 				break;
 			}
 			if (k == text.size() && searchPostion == 0)
@@ -178,7 +178,10 @@ void Search(TextSearchInfo& searchInfo, SearchOccurrences& results)
 	for (size_t i = 0; i < searchInfo.templates.size(); ++i)
 	{
 		searchInfo.templates[i].index = i;
-		SearchTemplate(0, searchInfo.text, searchInfo.templates[i], results);
+		std::string substring;
+		std::transform(searchInfo.templates[i].substring.begin(), searchInfo.templates[i].substring.end(),
+			substring.begin(), ::tolower);
+		SearchTemplate(0, searchInfo.text, substring, searchInfo.templates[i], results);
 	}
 
 	return;

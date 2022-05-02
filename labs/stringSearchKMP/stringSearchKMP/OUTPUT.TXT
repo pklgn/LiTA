@@ -1,6 +1,2 @@
-AA 1
-ABA 2
-AA 4
-AA 5
-AC No
-AD No
+ABA No
+aa No
