@@ -3,5 +3,4 @@ AA
 ABA
 AC
 AD
-AABAAA
-
+AAABAA
