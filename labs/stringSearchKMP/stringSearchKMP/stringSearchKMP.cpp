@@ -31,6 +31,7 @@ bool ValidateFile(const std::ifstream& inputFile);
 void ReadSearchInfo(std::ifstream& inputFile, TextSearchInfo& searchInfo);
 void Search(TextSearchInfo& searchInfo, SearchOccurrences& results);
 bool SearchInfoCompare(TemplateSearchInfo& first, TemplateSearchInfo& second);
+void PrintResults(std::ofstream& outputFile, TextSearchInfo& searchInfo, SearchOccurrences& results);
 
 int main()
 {
@@ -49,22 +50,8 @@ int main()
 	SearchOccurrences results;
 	Search(searchInfo, results);
 
-	for (auto& result: results)
-	{
-		for (auto& substringPos: result.second)
-		{
-			std::cout << searchInfo.templates[substringPos].substring << " ";
-			if (result.first == searchInfo.text.size())
-			{
-				std::cout << "No";
-			}
-			else 
-			{
-				std::cout << result.first + 1;
-			}
-			std::cout << std::endl;
-		}
-	}
+	std::ofstream outputFile(OUTPUT_FILE_NAME);
+	PrintResults(outputFile, searchInfo, results);
 
 	return 0;
 }
@@ -193,4 +180,26 @@ void Search(TextSearchInfo& searchInfo, SearchOccurrences& results)
 bool SearchInfoCompare(TemplateSearchInfo& first, TemplateSearchInfo& second)
 {
 	return first.substring < second.substring;
+}
+
+void PrintResults(std::ofstream& outputFile, TextSearchInfo& searchInfo, SearchOccurrences& results)
+{
+	for (auto& result : results)
+	{
+		for (auto& substringPos : result.second)
+		{
+			outputFile << searchInfo.templates[substringPos].substring << " ";
+			if (result.first == searchInfo.text.size())
+			{
+				outputFile << "No";
+			}
+			else
+			{
+				outputFile << result.first + 1;
+			}
+			outputFile << std::endl;
+		}
+	}
+
+	return;
 }

@@ -1,0 +1,6 @@
+AA 1
+AA 2
+ABA 3
+AA 5
+AC No
+AD No
