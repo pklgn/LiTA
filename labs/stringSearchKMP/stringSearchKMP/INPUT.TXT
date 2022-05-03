@@ -1,4 +1,6 @@
-2
-aa
+4
+AA
 ABA
-A
+AC
+AD
+aa

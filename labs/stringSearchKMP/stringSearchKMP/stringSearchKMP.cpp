@@ -14,6 +14,7 @@
 #include <algorithm>
 #include <iostream>
 #include <fstream>
+#include <string>
 #include <vector>
 #include <map>
 
@@ -70,7 +71,7 @@ int main()
 void SetPrefix(TemplateSearchInfo& templateInfo)
 {
 	templateInfo.prefix[0] = 0;
-	int i = 1;
+	size_t i = 1;
 	int j = 0;
 	while (i < templateInfo.substring.size())
 	{
@@ -147,13 +148,15 @@ void SearchTemplate(size_t searchPostion, std::string& text, std::string& substr
 
 void ReadSubstrings(std::ifstream& inputFile, std::vector<TemplateSearchInfo>& templates)
 {
+	std::string line;
 	size_t N;
-	inputFile >> N;
+	std::getline(inputFile, line);
+	N = std::stoi(line);
 
 	for (size_t i = 0; i < N; ++i)
 	{
 		std::string substring;
-		inputFile >> substring;
+		std::getline(inputFile, substring);
 		Prefix prefix(substring.size(), -1);
 		TemplateSearchInfo templateInfo({ substring, prefix });
 		SetPrefix(templateInfo);
@@ -166,7 +169,7 @@ void ReadSubstrings(std::ifstream& inputFile, std::vector<TemplateSearchInfo>& t
 void ReadSearchInfo(std::ifstream& inputFile, TextSearchInfo& searchInfo)
 {
 	ReadSubstrings(inputFile, searchInfo.templates);
-	inputFile >> searchInfo.text;
+	std::getline(inputFile, searchInfo.text);
 
 	return;
 }
@@ -190,7 +193,7 @@ void Search(TextSearchInfo& searchInfo, SearchOccurrences& results)
 		searchInfo.templates[i].index = i;
 		std::string substring;
 		std::transform(searchInfo.templates[i].substring.begin(), searchInfo.templates[i].substring.end(),
-			substring.begin(), ::tolower);
+			std::back_inserter(substring), ::tolower);
 		SearchTemplate(0, searchInfo.text, substring, searchInfo.templates[i], results);
 	}
 
