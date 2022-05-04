@@ -43,10 +43,15 @@ int main()
 
 	std::deque<Planet> planetTrip;
 	planetTrip.push_back(planets[0]);
+	planetTrip.front().depth = 0;
 	int i = 0;
 	while (!planetTrip.empty())
 	{
-		++i;
+		if (i < planets.size())
+		{
+			++i;
+		}
+		
 
 		while (i < planets.size() && planets[i].fuel != planetTrip.front().fuel)
 		{
@@ -56,23 +61,37 @@ int main()
 		if (i < planets.size())
 		{
 			planetTrip.push_back(planets[i]);
+			for (size_t j = 1; j < planetTrip.size(); ++j)
+			{
+				if (planetTrip.front().depth + 1 < planetTrip[j].depth)
+				{
+					planetTrip[j].prevPosition = i - (planetTrip.size() - 1);
+					planetTrip[j].depth = planetTrip.front().depth + 1;
+				}
+			}
+			if (!planetTrip.empty())
+			{
+				planetTrip.pop_front();
+			}
+		}
+		else if (planets[i - 1].fuel != planetTrip.front().fuel)
+		{
+			planetTrip.pop_front();
 		}
 		else
 		{
-			planetTrip.pop_front();
-		}
-
-		for (size_t j = 1; j < planetTrip.size(); ++j)
-		{
-			if (planetTrip.front().depth + 1 < planetTrip[j].depth)
+			for (size_t j = 1; j < planetTrip.size(); ++j)
 			{
-				planetTrip[j].prevPosition = i;
-				planetTrip[j].depth = planetTrip.front().depth + 1;
+				if (planetTrip.front().depth + 1 < planetTrip[j].depth)
+				{
+					planetTrip[j].prevPosition = i - (planetTrip.size() - 1);
+					planetTrip[j].depth = planetTrip.front().depth + 1;
+				}
 			}
-		}
-		if (!planetTrip.empty())
-		{
-			planetTrip.pop_front();
+			if (!planetTrip.empty())
+			{
+				planetTrip.pop_front();
+			}
 		}
 	}
 
