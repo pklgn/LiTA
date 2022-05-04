@@ -55,7 +55,7 @@ int main()
 	
 	while (!planetTrip.empty() && !exitFlag)
 	{
-		while (i < planets.size())
+		while (i < planets.size() && fuelState[planetTrip.front()->fuel] <= 1)
 		{
 			if (planetTrip.front()->fuel == planetTrip.back()->fuel && planetTrip.size() != 1)
 			{
@@ -99,9 +99,14 @@ int main()
 				}
 			}
 		}
+
+		if (i == planets.size() && fuelState[planetTrip.back()->fuel] < 2)
+		{
+			break;
+		}
 	}
 
-	if (planetTrip.empty())
+	if (planets[planets.size() - 1].prevPosition != -1)
 	{
 		std::deque<int> result;
 		int pos = planets[planets.size() - 1].prevPosition;
