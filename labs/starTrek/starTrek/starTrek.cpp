@@ -5,6 +5,7 @@
 #include <fstream>
 #include <vector>
 #include <deque>
+#include <limits.h>
 
 const std::string INPUT_FILE_NAME = "INPUT.TXT";
 const std::string OUTPUT_FILE_NAME = "OUTPUT.TXT";
@@ -22,36 +23,35 @@ typedef std::vector<Planet> Planets;
 
 int main()
 {
-	std::ifstream inputFile(INPUT_FILE_NAME);
-	bool status = ValidateFile(inputFile);
-	if (!status)
-	{
-		return 1;
-	}
+	//std::ifstream inputFile(INPUT_FILE_NAME);
+	//bool status = ValidateFile(inputFile);
+	//if (!status)
+	//{
+	//	return 1;
+	//}
 
 	size_t N;
-	inputFile >> N;
+	std::cin >> N;
 
 	Planets planets;
 
 	for (size_t i = 0; i < N; ++i)
 	{
 		size_t planetFuel;
-		inputFile >> planetFuel;
+		std::cin >> planetFuel;
 		planets.push_back({ planetFuel });
 	}
 
 	std::deque<Planet*> planetTrip;
 	planetTrip.push_back(&planets[0]);
 	planetTrip.front()->depth = 0;
-	int i = 0;
+	size_t i = 0;
 	while (!planetTrip.empty())
 	{
 		if (i < planets.size())
 		{
 			++i;
 		}
-		
 
 		while (i < planets.size() && planets[i].fuel != planetTrip.front()->fuel)
 		{
@@ -68,15 +68,11 @@ int main()
 					planetTrip[j]->prevPosition = planetTrip.front() - &planets[0];
 					planetTrip[j]->depth = planetTrip.front()->depth + 1;
 				}
+				if (planetTrip.front()->fuel == planetTrip[j]->fuel)
+				{
+					break;
+				}
 			}
-			if (!planetTrip.empty())
-			{
-				planetTrip.pop_front();
-			}
-		}
-		else if (planets[i - 1].fuel != planetTrip.front()->fuel)
-		{
-			planetTrip.pop_front();
 		}
 		else
 		{
@@ -87,10 +83,21 @@ int main()
 					planetTrip[j]->prevPosition = planetTrip.front() - &planets[0];
 					planetTrip[j]->depth = planetTrip.front()->depth + 1;
 				}
+				if (planetTrip.front()->fuel == planetTrip[j]->fuel)
+				{
+					break;
+				}
 			}
+		}
+		if (!planetTrip.empty())
+		{
+			planetTrip.pop_front();
 			if (!planetTrip.empty())
 			{
-				planetTrip.pop_front();
+				if (planetTrip.front()->depth == INT_MAX)
+				{
+					break;
+				}
 			}
 		}
 	}
@@ -100,7 +107,9 @@ int main()
 	if (planets[planets.size() - 1].depth != INT_MAX)
 	{
 		std::deque<size_t> result;
-		size_t pos = planets[planets.size() - 1].prevPosition;
+		int pos = planets[planets.size() - 1].prevPosition;
+		size_t lastPos = pos;
+		
 		while (pos != -1)
 		{
 			result.push_front(pos);
@@ -109,8 +118,8 @@ int main()
 		std::cout << result.size() << std::endl;
 		for (auto& pos: result)
 		{
-			std::cout << pos;
-			if (pos != -1)
+			std::cout << pos + 1;
+			if (pos != lastPos)
 			{
 				std::cout << " ";
 			}
