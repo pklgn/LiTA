@@ -45,70 +45,62 @@ int main()
 	std::deque<Planet*> planetTrip;
 	planetTrip.push_back(&planets[0]);
 	planetTrip.front()->depth = 0;
-	size_t i = 0;
-	while (!planetTrip.empty())
+	planetTrip.push_back(&planets[1]);
+	size_t i = 2;
+	bool exitFlag = false;
+	while (!planetTrip.empty() && !exitFlag)
 	{
-		if (i < planets.size())
+		while (i < planets.size())
 		{
+			if (planetTrip.front()->fuel == planetTrip.back()->fuel && planetTrip.size() != 1)
+			{
+				break;
+			}
+			else if (planets[i].fuel == planetTrip.front()->fuel)
+			{
+				planetTrip.push_back(&planets[i]);
+				++i;
+				break;
+			}
+			planetTrip.push_back(&planets[i]);
 			++i;
 		}
 
-		while (i < planets.size() && planets[i].fuel != planetTrip.front()->fuel)
+		auto it = std::find_if(planetTrip.begin(), planetTrip.end(),
+			[planetTrip](Planet* planet) { return planetTrip.front()->fuel == planet->fuel && planetTrip.front() != planet; });
+		bool status = it != planetTrip.end();
+		for (size_t j = 1; j < planetTrip.size() && status; ++j)
 		{
-			planetTrip.push_back(&planets[i]);
-			++i;
-		}
-		if (i < planets.size())
-		{
-			planetTrip.push_back(&planets[i]);
-			for (size_t j = 1; j < planetTrip.size() && planetTrip.front()->fuel == planetTrip.back()->fuel; ++j)
+			
+			if (planetTrip.front()->depth + 1 < planetTrip[j]->depth)
 			{
-				if (planetTrip.front()->depth + 1 < planetTrip[j]->depth && planetTrip.front() != planetTrip[j])
-				{
-					planetTrip[j]->prevPosition = planetTrip.front() - &planets[0];
-					planetTrip[j]->depth = planetTrip.front()->depth + 1;
-				}
-				if (planetTrip.front()->fuel == planetTrip[j]->fuel)
-				{
-					break;
-				}
+				planetTrip[j]->prevPosition = planetTrip.front() - &planets[0];
+				planetTrip[j]->depth = planetTrip.front()->depth + 1;
+			}
+			if (planetTrip.front()->fuel == planetTrip[j]->fuel)
+			{
+				break;
 			}
 		}
-		else
-		{
-			for (size_t j = 1; j < planetTrip.size() && planetTrip.front()->fuel == planetTrip.back()->fuel; ++j)
-			{
-				if (planetTrip.front()->depth + 1 < planetTrip[j]->depth && planetTrip.front() != planetTrip[j])
-				{
-					planetTrip[j]->prevPosition = planetTrip.front() - &planets[0];
-					planetTrip[j]->depth = planetTrip.front()->depth + 1;
-				}
-				if (planetTrip.front()->fuel == planetTrip[j]->fuel)
-				{
-					break;
-				}
-			}
-		}
+
 		if (!planetTrip.empty())
 		{
 			planetTrip.pop_front();
 			if (!planetTrip.empty())
 			{
-				if (planetTrip.front()->depth == INT_MAX)
+				if (planetTrip.front()->prevPosition == -1)
 				{
-					break;
+					exitFlag = true;
 				}
 			}
 		}
 	}
 
-	
-
-	if (planets[planets.size() - 1].depth != INT_MAX)
+	if (planetTrip.empty())
 	{
-		std::deque<size_t> result;
+		std::deque<int> result;
 		int pos = planets[planets.size() - 1].prevPosition;
-		size_t lastPos = pos;
+		int lastPos = pos;
 		
 		while (pos != -1)
 		{
@@ -133,6 +125,8 @@ int main()
 	{
 		std::cout << 0 << std::endl;
 	}
+
+	return 0;
 }
 
 bool ValidateFile(const std::ifstream& inputFile)
