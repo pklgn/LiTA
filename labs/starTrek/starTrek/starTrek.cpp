@@ -5,6 +5,7 @@
 #include <fstream>
 #include <vector>
 #include <deque>
+#include <map>
 #include <limits.h>
 
 const std::string INPUT_FILE_NAME = "INPUT.TXT";
@@ -41,13 +42,17 @@ int main()
 		std::cin >> planetFuel;
 		planets.push_back({ planetFuel });
 	}
-
+	std::map<int, int> fuelState;
 	std::deque<Planet*> planetTrip;
 	planetTrip.push_back(&planets[0]);
 	planetTrip.front()->depth = 0;
+	fuelState[planets[0].fuel] += 1;
 	planetTrip.push_back(&planets[1]);
+	fuelState[planets[1].fuel] += 1;
 	size_t i = 2;
 	bool exitFlag = false;
+	// тип топлива и его количество
+	
 	while (!planetTrip.empty() && !exitFlag)
 	{
 		while (i < planets.size())
@@ -58,20 +63,19 @@ int main()
 			}
 			else if (planets[i].fuel == planetTrip.front()->fuel)
 			{
+				fuelState[planets[i].fuel] += 1;
 				planetTrip.push_back(&planets[i]);
 				++i;
 				break;
 			}
+			fuelState[planets[i].fuel] += 1;
 			planetTrip.push_back(&planets[i]);
 			++i;
 		}
 
-		auto it = std::find_if(planetTrip.begin(), planetTrip.end(),
-			[planetTrip](Planet* planet) { return planetTrip.front()->fuel == planet->fuel && planetTrip.front() != planet; });
-		bool status = it != planetTrip.end();
-		for (size_t j = 1; j < planetTrip.size() && status; ++j)
+		bool isExist = fuelState[planetTrip.front()->fuel] > 1;
+		for (size_t j = 1; j < planetTrip.size() && isExist; ++j)
 		{
-			
 			if (planetTrip.front()->depth + 1 < planetTrip[j]->depth)
 			{
 				planetTrip[j]->prevPosition = planetTrip.front() - &planets[0];
@@ -85,6 +89,7 @@ int main()
 
 		if (!planetTrip.empty())
 		{
+			fuelState[planetTrip.front()->fuel] -= 1;
 			planetTrip.pop_front();
 			if (!planetTrip.empty())
 			{
