@@ -1,15 +1,15 @@
-// starTrek.cpp : This file contains the 'main' function. Program execution begins and ends there.
+п»ї// starTrek.cpp : This file contains the 'main' function. Program execution begins and ends there.
 //
 
-#include <iostream>
-#include <fstream>
-#include <vector>
 #include <deque>
-#include <map>
+#include <fstream>
+#include <iostream>
 #include <limits.h>
+#include <map>
+#include <vector>
 
-const std::string INPUT_FILE_NAME = "INPUT.TXT";
-const std::string OUTPUT_FILE_NAME = "OUTPUT.TXT";
+const std::string INPUT_FILE_NAME = "input.txt";
+const std::string OUTPUT_FILE_NAME = "output.txt";
 
 bool ValidateFile(const std::ifstream& inputFile);
 
@@ -24,24 +24,25 @@ typedef std::vector<Planet> Planets;
 
 int main()
 {
-	//std::ifstream inputFile(INPUT_FILE_NAME);
-	//bool status = ValidateFile(inputFile);
-	//if (!status)
-	//{
-	//	return 1;
-	//}
+	std::ifstream inputFile(INPUT_FILE_NAME);
+	bool status = ValidateFile(inputFile);
+	if (!status)
+	{
+		return 1;
+	}
 
 	size_t N;
-	std::cin >> N;
+	inputFile >> N;
 
 	Planets planets;
 
 	for (size_t i = 0; i < N; ++i)
 	{
 		size_t planetFuel;
-		std::cin >> planetFuel;
+		inputFile >> planetFuel;
 		planets.push_back({ planetFuel });
 	}
+
 	std::map<int, int> fuelState;
 	std::deque<Planet*> planetTrip;
 	planetTrip.push_back(&planets[0]);
@@ -51,8 +52,7 @@ int main()
 	fuelState[planets[1].fuel] += 1;
 	size_t i = 2;
 	bool exitFlag = false;
-	// тип топлива и его количество
-	
+
 	while (!planetTrip.empty() && !exitFlag)
 	{
 		while (i < planets.size() && fuelState[planetTrip.front()->fuel] <= 1)
@@ -106,34 +106,36 @@ int main()
 		}
 	}
 
+	std::ofstream outputFile(OUTPUT_FILE_NAME);
+
 	if (planets[planets.size() - 1].prevPosition != -1)
 	{
 		std::deque<int> result;
 		int pos = planets[planets.size() - 1].prevPosition;
 		int lastPos = pos;
-		
+
 		while (pos != -1)
 		{
 			result.push_front(pos);
 			pos = planets[pos].prevPosition;
 		}
-		std::cout << result.size() << std::endl;
-		for (auto& pos: result)
+		outputFile << result.size() << std::endl;
+		for (auto& pos : result)
 		{
-			std::cout << pos + 1;
+			outputFile << pos + 1;
 			if (pos != lastPos)
 			{
-				std::cout << " ";
+				outputFile << " ";
 			}
-			else 
+			else
 			{
-				std::cout << std::endl;
+				outputFile << std::endl;
 			}
 		}
 	}
-	else 
+	else
 	{
-		std::cout << 0 << std::endl;
+		outputFile << 0 << std::endl;
 	}
 
 	return 0;
