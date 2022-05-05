@@ -2,6 +2,7 @@
 //
 
 #include <deque>
+#include <stack>
 #include <fstream>
 #include <iostream>
 #include <limits.h>
@@ -56,8 +57,7 @@ int main()
 	{
 		while (i < planets.size() && fuelState[planets[q].fuel] <= 1)
 		{
-			
-			if (planets[i].fuel == planets[q].fuel && (i - q) != 1)
+			if (planets[i].fuel == planets[q].fuel)
 			{
 				fuelState[planets[i].fuel] += 1;
 				++i;
@@ -105,19 +105,20 @@ int main()
 
 	if (planets[planets.size() - 1].prevPosition != -1)
 	{
-		std::deque<int> result;
+		std::stack<int> results;
 		int pos = planets[planets.size() - 1].prevPosition;
 		int lastPos = pos;
-
 		while (pos != -1)
 		{
-			result.push_front(pos);
+			results.push(pos);
 			pos = planets[pos].prevPosition;
 		}
-		outputFile << result.size() << std::endl;
-		for (auto& pos : result)
+		size_t length = results.size();
+		outputFile << length << std::endl;
+		for (size_t i = 0; i < length; ++i)
 		{
-			outputFile << pos + 1;
+			outputFile << results.top() + 1;
+			results.pop();
 			if (pos != lastPos)
 			{
 				outputFile << " ";
