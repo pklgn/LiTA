@@ -1,7 +1,17 @@
-﻿// rectangles2.cpp : This file contains the 'main' function. Program execution begins and ends there.
-//
+﻿/*
+* 7.8. Прямоугольники 2(7)
+* На координатной плоскости задано N прямоугольников со сторонами, параллельными координатным осям.
+* Найти периметр фигуры, получающейся в результате объединения прямоугольников. Периметром считается 
+* общая длина внутренних и внешних границ фигуры.
+* 
+* 
+* Стандарт C++ 17
+* Среда разработки: Visual Studio 2019, MSVC
+* ОС: Windows 10
+*
+* Выполнил: Ермаков Павел, ПС-21
+*/
 
-#include <algorithm>
 #include <fstream>
 #include <iostream>
 #include <map>
@@ -10,22 +20,16 @@
 const std::string INPUT_FILE_NAME = "INPUT.TXT";
 const std::string OUTPUT_FILE_NAME = "OUTPUT.TXT";
 
-typedef std::pair<int, int> RectangleSide;
-
 enum class PointType
 {
 	Begin,
 	End,
-	IntersectionBegin,
-	IntersectionEnd,
 };
 
-enum class SideType
+enum class ScanMode
 {
-	Left,
-	Up,
-	Right,
-	Down,
+	Vertically,
+	Horizontally
 };
 
 struct Point
@@ -41,26 +45,32 @@ struct Point
 	}
 };
 
-struct VertexInfo
-{
-	int RectangleId;
-	PointType pointType;
-	SideType sideType;
-};
-
 struct Dimensions
 {
 	int width;
 	int height;
 };
-// pos PointType
-typedef std::map<int, std::vector<VertexInfo>> AxisPosition;
-typedef std::map<int, AxisPosition> EventPointsMap;
 
-Dimensions GetDimensions(Point& A, Point& C);
+struct Rectangle
+{
+	Point LUVertex;
+	Dimensions dimensions;
+};
+
+typedef std::vector<Rectangle> Rectangles;
+typedef std::map<int, PointType> VertexPoints;
+typedef std::map<int, VertexPoints> AxisPoints;
+
+struct Coordinates
+{
+	AxisPoints yPoints;
+	AxisPoints xPoints;
+};
+
 bool ValidateFile(const std::ifstream& inputFile);
-void InsertVertexPoint(int axis, EventPointsMap& axisPoints, int axisPosition,
-	const VertexInfo& vertexInfo);
+int GetAxisPerimeter(const AxisPoints& axisPoints, const Rectangles& rectangles, const ScanMode mode);
+void ProcessAxisPoint(const VertexPoints& vertexPoints, AxisPoints& currAxisPoints, const Rectangles& rectangles, const ScanMode mode);
+void ReadRectangles(std::ifstream& inputFile, Rectangles& rectangles, Coordinates& coordinates);
 
 int main()
 {
@@ -71,29 +81,20 @@ int main()
 		return 1;
 	}
 
-	int N; //rectangles number
-	inputFile >> N;
+	Rectangles rectangles;
+	Coordinates coordinates;
 
-	EventPointsMap yPoints;
-	EventPointsMap xPoints;
+	ReadRectangles(inputFile, rectangles, coordinates);
 
-	for (int rectangleId = 0; rectangleId < N; ++rectangleId)
-	{
-		Point A;
-		Point C;
-		inputFile >> A >> C;
-		Dimensions dimensions = GetDimensions(A, C);
-		Point B = { A.x + dimensions.width, A.y };
-		Point D = { A.x, A.y + dimensions.height };
-		InsertVertexPoint(A.y, yPoints, A.x, { rectangleId, PointType::Begin, SideType::Up });
-		InsertVertexPoint(A.y, yPoints, B.x, { rectangleId, PointType::End, SideType::Up });
-		InsertVertexPoint(C.y, yPoints, C.x, { rectangleId, PointType::End, SideType::Down });
-		InsertVertexPoint(C.y, yPoints, D.x, { rectangleId, PointType::Begin, SideType::Down });
-		InsertVertexPoint(A.x, xPoints, A.y, { rectangleId, PointType::End, SideType::Left });
-		InsertVertexPoint(B.x, xPoints, B.y, { rectangleId, PointType::End, SideType::Right });
-		InsertVertexPoint(C.x, xPoints, C.y, { rectangleId, PointType::Begin, SideType::Right });
-		InsertVertexPoint(D.x, xPoints, D.y, { rectangleId, PointType::Begin, SideType::Left });
-	}
+	int perimeter = GetAxisPerimeter(coordinates.yPoints, rectangles, ScanMode::Horizontally) + 
+		GetAxisPerimeter(coordinates.xPoints, rectangles, ScanMode::Vertically);
+
+	std::ofstream outputFile(OUTPUT_FILE_NAME);
+	outputFile << perimeter << std::endl;
+
+	#ifdef _DEBUG
+	std::cout << perimeter << std::endl;
+	#endif
 
 	return 0;
 }
@@ -110,49 +111,136 @@ bool ValidateFile(const std::ifstream& inputFile)
 	return true;
 }
 
+int GetMultiplicity(AxisPoints& normAxisPoints);
+void ProcessAxisPoint(VertexPoints& vertexPoints, AxisPoints& currAxisPoints, 
+	const Rectangles& rectangles, const ScanMode mode);
+int GetAxisPerimeter(const AxisPoints& axisPoints, const Rectangles& rectangles, const ScanMode mode)
+{
+	int prevPos = INT_MAX;
+	int axisPerimeter = 0;
+	AxisPoints normAxisPoints;
+
+	for (auto& axisPoint : axisPoints)
+	{
+		int axisN = GetMultiplicity(normAxisPoints);
+
+		if (prevPos != INT_MAX)
+		{
+			axisPerimeter += 2 * (axisPoint.first - prevPos) * axisN;
+		}
+
+		ProcessAxisPoint(axisPoint.second, normAxisPoints, rectangles, mode);
+		prevPos = axisPoint.first;
+	}
+
+	return axisPerimeter;
+}
+
+int GetMultiplicity(AxisPoints& normAxisPoints)
+{
+	int multiplicity = 0;
+	int scanState = 0;
+
+	for (auto& normAxisPoint : normAxisPoints)
+	{
+		for (auto& vertex : normAxisPoint.second)
+		{
+			if (vertex.second == PointType::Begin)
+			{
+				++scanState;
+			}
+			else if (vertex.second == PointType::End)
+			{
+				--scanState;
+			}
+		}
+		if (scanState == 0 && normAxisPoint.second.size() != 0)
+		{
+			++multiplicity;
+		}
+	}
+
+	return multiplicity;
+}
+
+void ProcessAxisPoint(const VertexPoints& vertexPoints, AxisPoints& normAxisPoints, 
+	const Rectangles& rectangles, const ScanMode mode)
+{
+	for (auto& vertexPoint : vertexPoints)
+	{
+		int startPos;
+		int deltaPos;
+		const Rectangle rectangle = rectangles[vertexPoint.first];
+
+		switch (mode)
+		{
+		case ScanMode::Vertically:
+			startPos = rectangle.LUVertex.x;
+			deltaPos = rectangle.dimensions.width;
+			break;
+		case ScanMode::Horizontally:
+			startPos = rectangle.LUVertex.y;
+			deltaPos = -rectangle.dimensions.height;
+			break;
+		default:
+			return;
+		}
+
+		if (vertexPoint.second == PointType::Begin)
+		{
+			switch (mode)
+			{
+			case ScanMode::Vertically:
+				normAxisPoints[startPos].emplace(vertexPoint.first, PointType::Begin);
+				normAxisPoints[startPos + deltaPos].emplace(vertexPoint.first, PointType::End);
+				break;
+			case ScanMode::Horizontally:
+				normAxisPoints[startPos].emplace(vertexPoint.first, PointType::End);
+				normAxisPoints[startPos + deltaPos].emplace(vertexPoint.first, PointType::Begin);
+				break;
+			default:
+				return;
+			}
+		}
+		else
+		{
+			normAxisPoints[startPos].erase(vertexPoint.first);
+			normAxisPoints[startPos + deltaPos].erase(vertexPoint.first);
+		}
+	}
+
+	return;
+}
+
+Dimensions GetDimensions(Point& A, Point& C);
+void ReadRectangles(std::ifstream& inputFile, Rectangles& rectangles, Coordinates& coordinates)
+{
+	int N;
+	inputFile >> N;
+
+	for (int rectangleId = 0; rectangleId < N; ++rectangleId)
+	{
+		Point A;
+		Point C;
+		inputFile >> A >> C;
+		Dimensions dimensions = GetDimensions(A, C);
+		Point B = { A.x + dimensions.width, A.y };
+		rectangles.push_back({ A, dimensions });
+
+		coordinates.yPoints[A.x].emplace(rectangleId, PointType::Begin);
+		coordinates.yPoints[B.x].emplace(rectangleId, PointType::End);
+		coordinates.xPoints[C.y].emplace(rectangleId, PointType::Begin);
+		coordinates.xPoints[B.y].emplace(rectangleId, PointType::End);
+	}
+
+	return;
+}
+
 Dimensions GetDimensions(Point& A, Point& C)
 {
 	Dimensions result;
 	result.width = C.x - A.x;
-	result.height = C.y - A.y;
+	result.height = A.y - C.y;
 
 	return result;
 }
-
-void InsertVertexPoint(int axis, EventPointsMap& axisPoints, int axisPosition,
-	const VertexInfo& vertexInfo)
-{
-	axisPoints[axis][axisPosition].push_back(vertexInfo);
-}
-
-void FindIntersectionPoints(EventPointsMap& mainPoints, EventPointsMap& axisPoints)
-{
-	for (auto& mainPoint : mainPoints)
-	{
-		int state = 0;
-		SideType currSide;
-		PointType currPoint;
-		std::map<int, std::vector<VertexInfo>> currVertexVec;
-
-		for (auto& axisPoint : axisPoints)
-		{
-			for (auto& scanLine : axisPoint.second)
-			{
-				for (auto& vertexPoint : scanLine.second)
-				{
-					if (vertexPoint.pointType == PointType::Begin)
-					{
-						state += 1;
-						currVertexVec.insert(scanLine);
-					}
-					else if (vertexPoint.pointType == PointType::End)
-					{
-						state -= 1;
-					}
-
-				}
-			}
-			
-		}
-	}
-	}
