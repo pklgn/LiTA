@@ -1,12 +1,11 @@
 ﻿// starTrek.cpp : This file contains the 'main' function. Program execution begins and ends there.
 //
 
-#include <deque>
 #include <stack>
 #include <fstream>
 #include <iostream>
 #include <limits.h>
-#include <map>
+#include <unordered_map>
 #include <vector>
 
 const std::string INPUT_FILE_NAME = "input.txt";
@@ -16,7 +15,7 @@ bool ValidateFile(const std::ifstream& inputFile);
 
 struct Planet
 {
-	size_t fuel;
+	int fuel;
 	int prevPosition = -1;
 	int depth = INT_MAX;
 };
@@ -40,12 +39,13 @@ int main()
 
 	for (size_t i = 0; i < N; ++i)
 	{
-		size_t planetFuel;
+		int planetFuel;
 		inputFile >> planetFuel;
 		planets.push_back({ planetFuel });
 	}
 
-	std::map<int, int> fuelState;
+	std::unordered_map<int, int> fuelState;
+	fuelState.reserve(N);
 	size_t q = 0;
 
 	planets[0].depth = 0;
@@ -68,32 +68,35 @@ int main()
 		}
 
 		bool isExist = fuelState[planets[q].fuel] > 1;
-		for (size_t j = q + 1; j <= i && isExist; ++j)
+		if (isExist)
 		{
-			if (planets[q].depth + 1 < planets[j].depth)
+ 			for (size_t j = q + 1; j <= i; ++j)
 			{
-				planets[j].prevPosition = &planets[q] - &planets[0];
-				planets[j].depth = planets[q].depth + 1;
-			}
-			if (planets[q].fuel == planets[j].fuel)
-			{
-				break;
-			}
-		}
-
-		if (q < i)
-		{
-			fuelState[planets[q].fuel] -= 1;
-
-			++q;
-			if (q <= i)
-			{
-				if (planets[q].prevPosition == -1)
+				if (planets[q].depth + 1 < planets[j].depth)
 				{
-					exitFlag = true;
+					planets[j].prevPosition = &planets[q] - &planets[0];
+					planets[j].depth = planets[q].depth + 1;
+				}
+				if (planets[q].fuel == planets[j].fuel)
+				{
+					break;
 				}
 			}
 		}
+
+		
+		
+		fuelState[planets[q].fuel] -= 1;
+
+		++q;
+		if (q <= i)
+		{
+			if (planets[q].prevPosition == -1)
+			{
+				exitFlag = true;
+			}
+		}
+		
 
 		if (i == planets.size() && fuelState[planets[i - 1].fuel] < 2)
 		{
