@@ -35,6 +35,7 @@ int main()
 	inputFile >> N;
 
 	Planets planets;
+	planets.reserve(N);
 
 	for (size_t i = 0; i < N; ++i)
 	{
@@ -44,63 +45,57 @@ int main()
 	}
 
 	std::map<int, int> fuelState;
-	std::deque<Planet*> planetTrip;
-	planetTrip.push_back(&planets[0]);
-	planetTrip.front()->depth = 0;
+	size_t q = 0;
+
+	planets[0].depth = 0;
 	fuelState[planets[0].fuel] += 1;
-	planetTrip.push_back(&planets[1]);
-	fuelState[planets[1].fuel] += 1;
-	size_t i = 2;
+	size_t i = 1;
 	bool exitFlag = false;
 
-	while (!planetTrip.empty() && !exitFlag)
+	while (i - q != 0 && !exitFlag)
 	{
-		while (i < planets.size() && fuelState[planetTrip.front()->fuel] <= 1)
+		while (i < planets.size() && fuelState[planets[q].fuel] <= 1)
 		{
-			if (planetTrip.front()->fuel == planetTrip.back()->fuel && planetTrip.size() != 1)
-			{
-				break;
-			}
-			else if (planets[i].fuel == planetTrip.front()->fuel)
+			
+			if (planets[i].fuel == planets[q].fuel && (i - q) != 1)
 			{
 				fuelState[planets[i].fuel] += 1;
-				planetTrip.push_back(&planets[i]);
 				++i;
 				break;
 			}
 			fuelState[planets[i].fuel] += 1;
-			planetTrip.push_back(&planets[i]);
 			++i;
 		}
 
-		bool isExist = fuelState[planetTrip.front()->fuel] > 1;
-		for (size_t j = 1; j < planetTrip.size() && isExist; ++j)
+		bool isExist = fuelState[planets[q].fuel] > 1;
+		for (size_t j = q + 1; j <= i && isExist; ++j)
 		{
-			if (planetTrip.front()->depth + 1 < planetTrip[j]->depth)
+			if (planets[q].depth + 1 < planets[j].depth)
 			{
-				planetTrip[j]->prevPosition = planetTrip.front() - &planets[0];
-				planetTrip[j]->depth = planetTrip.front()->depth + 1;
+				planets[j].prevPosition = &planets[q] - &planets[0];
+				planets[j].depth = planets[q].depth + 1;
 			}
-			if (planetTrip.front()->fuel == planetTrip[j]->fuel)
+			if (planets[q].fuel == planets[j].fuel)
 			{
 				break;
 			}
 		}
 
-		if (!planetTrip.empty())
+		if (q < i)
 		{
-			fuelState[planetTrip.front()->fuel] -= 1;
-			planetTrip.pop_front();
-			if (!planetTrip.empty())
+			fuelState[planets[q].fuel] -= 1;
+
+			++q;
+			if (q <= i)
 			{
-				if (planetTrip.front()->prevPosition == -1)
+				if (planets[q].prevPosition == -1)
 				{
 					exitFlag = true;
 				}
 			}
 		}
 
-		if (i == planets.size() && fuelState[planetTrip.back()->fuel] < 2)
+		if (i == planets.size() && fuelState[planets[i - 1].fuel] < 2)
 		{
 			break;
 		}
