@@ -7,6 +7,7 @@
 #include <limits.h>
 #include <unordered_map>
 #include <vector>
+#include <utility>
 
 const std::string INPUT_FILE_NAME = "input.txt";
 const std::string OUTPUT_FILE_NAME = "output.txt";
@@ -15,9 +16,15 @@ bool ValidateFile(const std::ifstream& inputFile);
 
 struct Planet
 {
+	Planet(int fuelType)
+		: fuel(fuelType)
+		, prevPosition(-1)
+		, depth(INT_MAX)
+	{
+	}
 	int fuel;
-	int prevPosition = -1;
-	int depth = INT_MAX;
+	int prevPosition;
+	int depth;
 };
 
 typedef std::vector<Planet> Planets;
@@ -36,34 +43,32 @@ int main()
 
 	Planets planets;
 	planets.reserve(N);
+	std::unordered_map<int, int> fuelState;
+	fuelState.reserve(N);
 
 	for (size_t i = 0; i < N; ++i)
 	{
 		int planetFuel;
 		inputFile >> planetFuel;
-		planets.push_back({ planetFuel });
+		fuelState[planetFuel] += 1;
+		planets.push_back(std::move(Planet(planetFuel)));
 	}
 
-	std::unordered_map<int, int> fuelState;
-	fuelState.reserve(N);
 	size_t q = 0;
 
 	planets[0].depth = 0;
-	fuelState[planets[0].fuel] += 1;
 	size_t i = 1;
 	bool exitFlag = false;
 
 	while (i - q != 0 && !exitFlag)
 	{
-		while (i < planets.size() && fuelState[planets[q].fuel] <= 1)
+		while (i < planets.size() && fuelState[planets[q].fuel] > 1)
 		{
 			if (planets[i].fuel == planets[q].fuel)
 			{
-				fuelState[planets[i].fuel] += 1;
 				++i;
 				break;
 			}
-			fuelState[planets[i].fuel] += 1;
 			++i;
 		}
 
