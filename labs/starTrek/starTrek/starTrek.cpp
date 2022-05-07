@@ -75,9 +75,6 @@ int main()
 
 		if (stopPlanet == INT_MIN)
 		{
-			/*planets[currPlanetPos].reachable = false;
-			currPlanetPos = planets[currPlanetPos].prevPosition;
-			prevCurrPlanetPos = currPlanetPos;*/
 			break;
 		}
 		else
