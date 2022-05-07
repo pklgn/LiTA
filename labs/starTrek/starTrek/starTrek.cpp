@@ -7,7 +7,6 @@
 #include <limits.h>
 #include <unordered_map>
 #include <vector>
-#include <utility>
 
 const std::string INPUT_FILE_NAME = "input.txt";
 const std::string OUTPUT_FILE_NAME = "output.txt";
@@ -16,18 +15,15 @@ bool ValidateFile(const std::ifstream& inputFile);
 
 struct Planet
 {
-	Planet(int fuelType)
-		: fuel(fuelType)
-		, prevPosition(-1)
-		, depth(INT_MAX)
-	{
-	}
 	int fuel;
-	int prevPosition;
-	int depth;
+	int prevPosition = INT_MAX;
+	int nextPosition = INT_MIN;
+	bool reachable = true;
 };
 
 typedef std::vector<Planet> Planets;
+
+int FindStopPlanet(int currPlanet, int nextPlanet, Planets& planets, int prevCurrPlanet);
 
 int main()
 {
@@ -43,83 +39,67 @@ int main()
 
 	Planets planets;
 	planets.reserve(N);
-	std::unordered_map<int, int> fuelState;
-	fuelState.reserve(N);
+	std::vector<int> test;
+
+	std::unordered_map<int, int> fuelPositions;
+	fuelPositions.reserve(N);
 
 	for (size_t i = 0; i < N; ++i)
 	{
 		int planetFuel;
 		inputFile >> planetFuel;
-		fuelState[planetFuel] += 1;
-		planets.push_back(std::move(Planet(planetFuel)));
+		planets.push_back({ planetFuel });
+		
+		if (fuelPositions.find(planetFuel) != fuelPositions.end())
+		{
+			planets[fuelPositions[planetFuel]].nextPosition = i;
+		}
+		fuelPositions[planetFuel] = i;
 	}
 
-	size_t q = 0;
+	int currPlanetPos = 0;
+	int nextPlanetPos;
+	int prevCurrPlanetPos = 0;
 
-	planets[0].depth = 0;
-	size_t i = 1;
-	bool exitFlag = false;
-
-	while (i - q != 0 && !exitFlag)
+	while (planets[planets.size() - 1].prevPosition == INT_MAX && planets[0].reachable)
 	{
-		while (i < planets.size() && fuelState[planets[q].fuel] > 1)
+		nextPlanetPos = planets[currPlanetPos].nextPosition;
+		if (nextPlanetPos == INT_MIN)
 		{
-			if (planets[i].fuel == planets[q].fuel)
-			{
-				++i;
-				break;
-			}
-			++i;
+			planets[currPlanetPos].reachable = false;
+			currPlanetPos = planets[currPlanetPos].prevPosition;
+			prevCurrPlanetPos = currPlanetPos;
+			continue;
 		}
+		int stopPlanet = FindStopPlanet(currPlanetPos, nextPlanetPos, planets, prevCurrPlanetPos);
 
-		bool isExist = fuelState[planets[q].fuel] > 1;
-		if (isExist)
+		if (stopPlanet == INT_MIN)
 		{
- 			for (size_t j = q + 1; j <= i; ++j)
-			{
-				if (planets[q].depth + 1 < planets[j].depth)
-				{
-					planets[j].prevPosition = &planets[q] - &planets[0];
-					planets[j].depth = planets[q].depth + 1;
-				}
-				if (planets[q].fuel == planets[j].fuel)
-				{
-					break;
-				}
-			}
-		}
-
-		
-		
-		fuelState[planets[q].fuel] -= 1;
-
-		++q;
-		if (q <= i)
-		{
-			if (planets[q].prevPosition == -1)
-			{
-				exitFlag = true;
-			}
-		}
-		
-
-		if (i == planets.size() && fuelState[planets[i - 1].fuel] < 2)
-		{
+			/*planets[currPlanetPos].reachable = false;
+			currPlanetPos = planets[currPlanetPos].prevPosition;
+			prevCurrPlanetPos = currPlanetPos;*/
 			break;
 		}
+		else
+		{
+			currPlanetPos = stopPlanet;
+			prevCurrPlanetPos = nextPlanetPos;
+		}
+
 	}
 
 	std::ofstream outputFile(OUTPUT_FILE_NAME);
 
-	if (planets[planets.size() - 1].prevPosition != -1)
+	if (planets[planets.size() - 1].prevPosition != INT_MAX)
 	{
 		std::stack<int> results;
 		int pos = planets[planets.size() - 1].prevPosition;
 		int lastPos = pos;
-		while (pos != -1)
+		results.push(pos);
+		while (pos != 0)
 		{
-			results.push(pos);
 			pos = planets[pos].prevPosition;
+			results.push(pos);
 		}
 		size_t length = results.size();
 		outputFile << length << std::endl;
@@ -155,4 +135,29 @@ bool ValidateFile(const std::ifstream& inputFile)
 	}
 
 	return true;
+}
+
+int FindStopPlanet(int currPlanet, int nextPlanet, Planets& planets, int prevCurrPlanet)
+{
+	int result = INT_MIN;
+	int farawayPlanet = INT_MIN;
+
+	if (nextPlanet == (planets.size() - 1))
+	{
+		planets[nextPlanet].prevPosition = currPlanet;
+
+		return result;
+	}
+
+	for (int pos = prevCurrPlanet; pos <= nextPlanet; ++pos)
+	{
+		if (farawayPlanet < planets[pos].nextPosition && planets[pos].reachable && pos != currPlanet)
+		{
+			planets[pos].prevPosition = currPlanet;
+			farawayPlanet = planets[pos].nextPosition;
+			result = pos;
+		}
+	}
+
+	return result;
 }
