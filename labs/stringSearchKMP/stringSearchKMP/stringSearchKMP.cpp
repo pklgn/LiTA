@@ -24,6 +24,7 @@ typedef std::vector<std::string> Templates;
 
 const std::string INPUT_FILE_NAME = "INPUT.TXT";
 const std::string OUTPUT_FILE_NAME = "OUTPUT.TXT";
+constexpr int NO_POSITION = INT_MAX;
 
 struct TemplateSearchInfo
 {
@@ -52,10 +53,11 @@ int main()
 	{
 		return 1;
 	}
-
+	setlocale(0, "");
 	TextSearchInfo searchInfo;
 	ReadSearchInfo(inputFile, searchInfo);
-	std::transform(searchInfo.text.begin(), searchInfo.text.end(), searchInfo.text.begin(), ::tolower);
+	std::transform(searchInfo.text.begin(), searchInfo.text.end(), searchInfo.text.begin(), 
+		[](unsigned char c) { return std::tolower(c); });
 
 	std::sort(searchInfo.templates.begin(), searchInfo.templates.end(), SearchInfoCompare);
 
@@ -73,9 +75,12 @@ void SetPrefix(TemplateSearchInfo& templateInfo)
 	templateInfo.prefix[0] = 0;
 	size_t i = 1;
 	int j = 0;
+	std::string lowerSubstring;
+	std::transform(templateInfo.substring.begin(), templateInfo.substring.end(),
+		std::back_inserter(lowerSubstring), [](unsigned char c) { return std::tolower(c); });
 	while (i < templateInfo.substring.size())
 	{
-		if (templateInfo.substring[i] != templateInfo.substring[j])
+		if (lowerSubstring[i] != lowerSubstring[j])
 		{
 			if (j == 0)
 			{
@@ -96,7 +101,7 @@ void SetPrefix(TemplateSearchInfo& templateInfo)
 	}
 }
 
-void SearchTemplate(size_t searchPostion, std::string& text, std::string& substring,
+size_t SearchTemplate(size_t searchPostion, std::string& text, std::string& substring,
 	TemplateSearchInfo& templateInfo, SearchOccurrences& results)
 {
 	size_t k = searchPostion;
@@ -104,13 +109,13 @@ void SearchTemplate(size_t searchPostion, std::string& text, std::string& substr
 
 	if (text.size() < k + templateInfo.substring.size() && searchPostion != 0)
 	{
-		return;
+		return NO_POSITION;
 	}
 	else if (text.size() < k + templateInfo.substring.size())
 	{
 		results[text.size()].push_back(templateInfo.index);
 
-		return;
+		return NO_POSITION;
 	}
 
 	while (k < text.size())
@@ -123,8 +128,8 @@ void SearchTemplate(size_t searchPostion, std::string& text, std::string& substr
 			{
 				results[k - l].push_back(templateInfo.index);
 				size_t delta = templateInfo.substring.size() - templateInfo.prefix[templateInfo.prefix.size() - 1];
-				SearchTemplate(k - l + delta, text, substring, templateInfo, results);
-				break;
+
+				return k - l + delta;
 			}
 			if (k == text.size() && searchPostion == 0)
 			{
@@ -144,6 +149,8 @@ void SearchTemplate(size_t searchPostion, std::string& text, std::string& substr
 			l = templateInfo.prefix[l - 1];
 		}
 	}
+
+	return NO_POSITION;
 }
 
 void ReadSubstrings(std::ifstream& inputFile, std::vector<TemplateSearchInfo>& templates)
@@ -193,8 +200,11 @@ void Search(TextSearchInfo& searchInfo, SearchOccurrences& results)
 		searchInfo.templates[i].index = i;
 		std::string substring;
 		std::transform(searchInfo.templates[i].substring.begin(), searchInfo.templates[i].substring.end(),
-			std::back_inserter(substring), ::tolower);
-		SearchTemplate(0, searchInfo.text, substring, searchInfo.templates[i], results);
+			std::back_inserter(substring), [](unsigned char c) { return std::tolower(c); });
+		size_t startPosition = 0;
+		do
+			startPosition = SearchTemplate(startPosition, searchInfo.text, substring, searchInfo.templates[i], results);
+		while (startPosition != NO_POSITION);
 	}
 
 	return;
