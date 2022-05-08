@@ -35,8 +35,8 @@
 #include <unordered_map>
 #include <vector>
 
-const std::string INPUT_FILE_NAME = "input.txt";
-const std::string OUTPUT_FILE_NAME = "output.txt";
+const std::string INPUT_FILE_NAME = "INPUT.TXT";
+const std::string OUTPUT_FILE_NAME = "OUTPUT.TXT";
 
 constexpr int START_PLANET_POS = 0;
 constexpr int NO_NEXT_POSITION = INT_MIN;
