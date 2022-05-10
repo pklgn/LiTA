@@ -79,8 +79,8 @@ int main()
 	
 	std::vector<StartPoint> startPoints;
 	startPoints.push_back({ startPositions[0], Direction::DR, Direction::UL });
-	startPoints.push_back({ startPositions[1], Direction::UR, Direction::DL });
-	startPoints.push_back({ startPositions[2], Direction::DL, Direction::UR });
+	startPoints.push_back({ startPositions[1], Direction::DL, Direction::UR });
+	startPoints.push_back({ startPositions[2], Direction::UR, Direction::DL });
 	startPoints.push_back({ startPositions[3], Direction::UL, Direction::DR });
 
 	int maxPts = 0;
@@ -104,7 +104,8 @@ int main()
 		}
 		pool[startPoint.position.x][startPoint.position.y].mark = counter + 1;
 
-		while (!(std::find(startPositions.begin(), startPositions.end(), currPosition) != startPositions.end() && currDirection == startPoint.endDirection) &&
+		auto it = std::find(startPositions.begin(), startPositions.end(), currPosition);
+		while (!(it != startPositions.end() && currDirection == startPoints[it - startPositions.begin()].endDirection) &&
 			pool[currPosition.x][currPosition.y].mark < counter + 1)
 		{
 			currPts += pool[currPosition.x][currPosition.y].value;
@@ -116,6 +117,7 @@ int main()
 				maxCounter = counter;
 			}
 			currPosition = MakeCommonMove(M, N, currPosition, currDirection);
+			it = std::find(startPositions.begin(), startPositions.end(), currPosition);
 		}
 		currPts += pool[currPosition.x][currPosition.y].value;
 		pool[currPosition.x][currPosition.y].mark = counter + 1;
@@ -125,7 +127,6 @@ int main()
 			maxPosition = currPosition;
 			maxCounter = counter;
 		}
-
 	}
 
 	return 0;
@@ -150,8 +151,8 @@ Point MakeSimpleMove(Point& point, Direction& startDirection)
 	switch (startDirection)
 	{
 	case Direction::DL:
-		result.x = point.x - 1;
-		result.y = point.y + 1;
+		result.x = point.x + 1;
+		result.y = point.y - 1;
 		startDirection = Direction::DL;
 		break;
 	case Direction::DR:
@@ -165,8 +166,8 @@ Point MakeSimpleMove(Point& point, Direction& startDirection)
 		startDirection = Direction::UL;
 		break;
 	case Direction::UR:
-		result.x = point.x + 1;
-		result.y = point.y - 1;
+		result.x = point.x - 1;
+		result.y = point.y + 1;
 		startDirection = Direction::UR;
 		break;
 	}
@@ -178,67 +179,61 @@ Point MakeCommonMove(int M, int N, Point& point, Direction& startDirection)
 {
 	Point result = point;
 
-	if (point.x == 0)
+	if (point.y == 0)
 	{
 		switch (startDirection)
 		{
 		case Direction::DL:
 			result.x++;
-			//result.y = point.y + 1;
 			startDirection = Direction::DR;
 			return result;
 		case Direction::UL:
 			result.x--;
-			//result.y = point.y + 1;
 			startDirection = Direction::UR;
 			return result;
 		}
 	}
-	else if (point.y == 0)
+	if (point.x == 0)
 	{
 		switch (startDirection)
 		{
 		case Direction::UL:
-			result.y = point.y;
-			result.x = point.x - 1;
+			result.y--;
+			//result.x = point.x - 1;
 			startDirection = Direction::DL;
 			return result;
 		case Direction::UR:
-			result.y = 0;
-			result.x = point.x + 1;
+			result.y++;
+			//result.x = point.x + 1;
 			startDirection = Direction::DR;
 			return result;
 		}
 	}
-	else if (point.x == M - 1)
+	if (point.x == M - 1)
 	{
 		switch (startDirection)
 		{
 		case Direction::DL:
-			result.x = point.x;
-			result.y = point.y - 1;
+			result.y--;
 			startDirection = Direction::UL;
 			return result;
 		case Direction::DR:
-			result.x = point.x;
-			result.y = point.y + 1;
+			result.y++;
 			startDirection = Direction::UR;
 			return result;
 		}
 	}
-	else if (point.y == N - 1)
+	if (point.y == N - 1)
 	{
 		switch (startDirection)
 		{
-		case Direction::DL:
-			result.y = point.y;
-			result.x = result.x - 1;
-			startDirection = Direction::UL;
-			return result;
 		case Direction::DR:
-			result.y = point.y;
-			result.x = result.x + 1;
-			startDirection = Direction::UR;
+			result.x++;
+			startDirection = Direction::DL;
+			return result;
+		case Direction::UR:
+			result.x--;
+			startDirection = Direction::UL;
 			return result;
 		}
 	}
