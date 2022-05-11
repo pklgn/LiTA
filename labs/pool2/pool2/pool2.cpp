@@ -33,6 +33,7 @@ enum class Direction
 	DL,
 	UR,
 	UL,
+	NO_DIRECTION,
 };
 
 struct StartPoint
@@ -42,12 +43,25 @@ struct StartPoint
 	Direction endDirection;
 };
 
+struct State
+{
+	int pts = 0;
+	int pocket = 0;
+	Point position;
+	Direction direction;
+};
+
 typedef std::vector<std::vector<Cell>> Pool;
+typedef std::vector<Point> StartPositions;
+typedef std::vector<StartPoint> StartPoints;
+
 bool ValidateFile(const std::ifstream& inputFile);
 Point MakeSimpleMove(Point& point, Direction& startDirection);
 Point MakeCommonMove(int M, int N, Point& point, Direction& startDirection);
-Direction GetOppositeDirection(Direction direction);
-void PrintDirection(std::ostream& outputStream, Direction direction);
+void UpdateMax(State& maxState, State& currState);
+void ProcessMove(State& currState, State& maxState, Pool& pool);
+void PrintResult(std::ostream& outputStream, State& maxState);
+State FindStartState(int M, int N, Pool& pool, StartPoints& startPoints, StartPositions& startPositions);
 
 int main()
 {
@@ -63,10 +77,10 @@ int main()
 	inputFile >> M >> N;
 
 	Pool pool;
-	for (size_t i = 0; i < M; ++i)
+	for (int i = 0; i < M; ++i)
 	{
 		std::vector<Cell> row;
-		for (size_t j = 0; j < N; ++j)
+		for (int j = 0; j < N; ++j)
 		{
 			int cell;
 			inputFile >> cell;
@@ -74,65 +88,20 @@ int main()
 		}
 		pool.push_back(row);
 	}
-	std::vector<Point> startPositions;
-	startPositions.push_back({ 0, 0 });
-	startPositions.push_back({ 0, N - 1 });
-	startPositions.push_back({ M - 1, 0 });
-	startPositions.push_back({ M - 1, N - 1 });
+	StartPositions startPositions({ { 0, 0 },
+		{ 0, N - 1 },
+		{ M - 1, 0 },
+		{ M - 1, N - 1 } });
 	
-	std::vector<StartPoint> startPoints;
-	startPoints.push_back({ startPositions[0], Direction::DR, Direction::UL });
-	startPoints.push_back({ startPositions[1], Direction::DL, Direction::UR });
-	startPoints.push_back({ startPositions[2], Direction::UR, Direction::DL });
-	startPoints.push_back({ startPositions[3], Direction::UL, Direction::DR });
+	StartPoints startPoints({ { startPositions[0], Direction::DR, Direction::UL },
+		{ startPositions[1], Direction::DL, Direction::UR },
+		{ startPositions[2], Direction::UR, Direction::DL },
+		{ startPositions[3], Direction::UL, Direction::DR } });
 
-	int maxPts = 0;
-	int maxCounter = 0;
-	Point maxPosition;
-	for (auto& startPoint: startPoints)
-	{
-		int counter = &startPoint - &startPoints[0];
-		int currPts = 0;
-		Point currPosition;
-		Direction currDirection;
-		currPts += pool[startPoint.position.x][startPoint.position.y].value;
-		currDirection = startPoint.startDirection;
-		currPosition = MakeSimpleMove(startPoint.position, currDirection);
-		
-		if (maxPts < currPts)
-		{
-			maxPts = currPts;
-			maxPosition = currPosition;
-			maxCounter = counter;
-		}
-		pool[startPoint.position.x][startPoint.position.y].mark = counter + 1;
+	State result = FindStartState(M, N, pool, startPoints, startPositions);
 
-		auto it = std::find(startPositions.begin(), startPositions.end(), currPosition);
-		while (!(it != startPositions.end() && currDirection == startPoints[it - startPositions.begin()].endDirection) &&
-			pool[currPosition.x][currPosition.y].mark < counter + 1)
-		{
-			currPts += pool[currPosition.x][currPosition.y].value;
-			pool[currPosition.x][currPosition.y].mark = counter + 1;
-			if (maxPts < currPts)
-			{
-				maxPts = currPts;
-				maxPosition = currPosition;
-				maxCounter = counter;
-			}
-			currPosition = MakeCommonMove(M, N, currPosition, currDirection);
-			it = std::find(startPositions.begin(), startPositions.end(), currPosition);
-		}
-		currPts += pool[currPosition.x][currPosition.y].value;
-		pool[currPosition.x][currPosition.y].mark = counter + 1;
-		if (maxPts < currPts)
-		{
-			maxPts = currPts;
-			maxPosition = currPosition;
-			maxCounter = counter;
-		}
-	}
-
-
+	std::ofstream outputFile(OUTPUT_FILE_NAME);
+	PrintResult(outputFile, result);
 
 	return 0;
 }
@@ -204,12 +173,10 @@ Point MakeCommonMove(int M, int N, Point& point, Direction& startDirection)
 		{
 		case Direction::UL:
 			result.y--;
-			//result.x = point.x - 1;
 			startDirection = Direction::DL;
 			return result;
 		case Direction::UR:
 			result.y++;
-			//result.x = point.x + 1;
 			startDirection = Direction::DR;
 			return result;
 		}
@@ -258,6 +225,8 @@ Direction GetOppositeDirection(Direction direction)
 		return Direction::DR;
 	case Direction::UR:
 		return Direction::DL;
+	default:
+		return Direction::NO_DIRECTION;
 	}
 }
 
@@ -284,11 +253,61 @@ std::string DirectionToString(Direction direction)
 	return stringStream.str();
 }
 
-void PrintResult(std::ostream& outputStream, Point& position, int pts, Direction& direction)
+void PrintResult(std::ostream& outputStream, State& maxState)
 {
-	outputStream << pts << std::endl
-				 << position.x << " " << position.y << std::endl
-				 << DirectionToString(direction) << std::endl;
+	outputStream << maxState.pts << std::endl
+				 << maxState.position.x + 1 << " " << maxState.position.y + 1 << std::endl
+				 << DirectionToString(maxState.direction) << std::endl;
 
 	return;
+}
+
+void UpdateMax(State& maxState, State& currState)
+{
+	if (maxState.pts < currState.pts)
+	{
+		maxState.pts = currState.pts;
+		maxState.position = currState.position;
+		maxState.pocket = currState.pocket;
+		maxState.direction = GetOppositeDirection(currState.direction);
+	}
+
+	return;
+}
+
+void ProcessMove(State& currState, State& maxState, Pool& pool)
+{
+	currState.pts += pool[currState.position.x][currState.position.y].value;
+	pool[currState.position.x][currState.position.y].mark = currState.pocket + 1;
+	UpdateMax(maxState, currState);
+
+	return;
+}
+
+State FindStartState(int M, int N, Pool& pool, StartPoints& startPoints, StartPositions& startPositions)
+{
+	State maxState;
+	for (auto& startPoint : startPoints)
+	{
+		State currState;
+		currState.pocket = &startPoint - &startPoints[0];
+		currState.pts += pool[startPoint.position.x][startPoint.position.y].value;
+		currState.direction = startPoint.startDirection;
+		currState.position = MakeSimpleMove(startPoint.position, currState.direction);
+
+		UpdateMax(maxState, currState);
+		pool[startPoint.position.x][startPoint.position.y].mark = currState.pocket + 1;
+
+		auto it = std::find(startPositions.begin(), startPositions.end(), currState.position);
+		while (!(it != startPositions.end() && currState.direction == startPoints[it - startPositions.begin()].endDirection) && pool[currState.position.x][currState.position.y].mark < currState.pocket + 1)
+		{
+			ProcessMove(currState, maxState, pool);
+
+			currState.position = MakeCommonMove(M, N, currState.position, currState.direction);
+			it = std::find(startPositions.begin(), startPositions.end(), currState.position);
+		}
+		ProcessMove(currState, maxState, pool);
+	}
+
+	return maxState;
 }
