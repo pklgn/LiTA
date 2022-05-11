@@ -2,6 +2,7 @@
 //
 
 #include <vector>
+#include <sstream>
 #include <fstream>
 #include <iostream>
 #include <algorithm>
@@ -45,6 +46,8 @@ typedef std::vector<std::vector<Cell>> Pool;
 bool ValidateFile(const std::ifstream& inputFile);
 Point MakeSimpleMove(Point& point, Direction& startDirection);
 Point MakeCommonMove(int M, int N, Point& point, Direction& startDirection);
+Direction GetOppositeDirection(Direction direction);
+void PrintDirection(std::ostream& outputStream, Direction direction);
 
 int main()
 {
@@ -128,6 +131,8 @@ int main()
 			maxCounter = counter;
 		}
 	}
+
+
 
 	return 0;
 }
@@ -239,4 +244,51 @@ Point MakeCommonMove(int M, int N, Point& point, Direction& startDirection)
 	}
 	
 	return MakeSimpleMove(point, startDirection);
+}
+
+Direction GetOppositeDirection(Direction direction)
+{
+	switch (direction)
+	{
+	case Direction::DL:
+		return Direction::UR;
+	case Direction::DR:
+		return Direction::UL;
+	case Direction::UL:
+		return Direction::DR;
+	case Direction::UR:
+		return Direction::DL;
+	}
+}
+
+std::string DirectionToString(Direction direction)
+{
+	std::ostringstream stringStream;
+
+	switch (direction)
+	{
+	case Direction::DL:
+		stringStream << "DL";
+		break;
+	case Direction::DR:
+		stringStream << "DR";
+		break;
+	case Direction::UL:
+		stringStream << "UL";
+		break;
+	case Direction::UR:
+		stringStream << "UR";
+		break;
+	}
+
+	return stringStream.str();
+}
+
+void PrintResult(std::ostream& outputStream, Point& position, int pts, Direction& direction)
+{
+	outputStream << pts << std::endl
+				 << position.x << " " << position.y << std::endl
+				 << DirectionToString(direction) << std::endl;
+
+	return;
 }
