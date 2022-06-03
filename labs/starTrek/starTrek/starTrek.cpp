@@ -1,26 +1,62 @@
-﻿// starTrek.cpp : This file contains the 'main' function. Program execution begins and ends there.
-//
+﻿/*
+* 2.4. Космический путь (8)
+* Экспедиция готовится отправиться в путь на космическом корабле нового поколения.
+* Планируется последовательно посетить N планет звездной системы: от планеты Земля до планеты Победа.
+* Планеты пронумерованы от 1 до N в порядке их посещения, Земля имеет номер 1, а Победа - номер N.
+* 
+* Для перелёта между планетами корабль может использовать любой тип топлива, существующий в звездной системе.
+* Перед началом экспедиции корабль находится на планете Земля, и бак корабля пуст. Существующие типы топлива 
+* пронумерованы целыми числами, на планете с номером i можно заправиться только топливом типа ai. 
+* При посещении i-й планеты можно заправиться, полностью освободив бак от имеющегося топлива и заполнив
+* его топливом типа ai.
+* 
+* На каждой планете станция заправки устроена таким образом, что в бак заправляется ровно столько топлива, 
+* сколько потребуется для перелета до следующей планеты с топливом такого же типа.
+* Если далее такой тип топлива не встречается, заправляться на этой планете невозможно.
+* Иначе говоря, после заправки на i-й планете топлива хватит для посещения планет от (i+1)-й до j-й
+* включительно, где j -  минимальный номер планеты, такой что j > i и aj  = ai.
+* Для продолжения экспедиции дальше j-й планеты корабль необходимо снова заправить на одной из этих планет.
+* 
+* Требуется написать программу, которая по заданным типам топлива на планетах определяет
+* минимальное количество заправок, требуемых для экспедиции.
+* 
+* 
+* Стандарт C++ 14
+* Среда разработки: Visual Studio 2019, MSVC
+* ОС: Windows 10
+*
+* Выполнил: Ермаков Павел, ПС-21
+*/
 
-#include <deque>
+#include <stack>
 #include <fstream>
 #include <iostream>
 #include <limits.h>
-#include <map>
+#include <unordered_map>
 #include <vector>
 
-const std::string INPUT_FILE_NAME = "input.txt";
-const std::string OUTPUT_FILE_NAME = "output.txt";
+const std::string INPUT_FILE_NAME = "INPUT.TXT";
+const std::string OUTPUT_FILE_NAME = "OUTPUT.TXT";
 
-bool ValidateFile(const std::ifstream& inputFile);
+constexpr int START_PLANET_POS = 0;
+constexpr int NO_NEXT_POSITION = INT_MIN;
+constexpr int NO_PREVIOUS_POSITION = INT_MAX;
 
 struct Planet
 {
-	size_t fuel;
-	int prevPosition = -1;
-	int depth = INT_MAX;
+	int fuel;
+	int prevPosition = INT_MAX;
+	int nextPosition = INT_MIN;
+	bool reachable = true;
 };
 
 typedef std::vector<Planet> Planets;
+typedef std::unordered_map<int, int> FuelPosition;
+
+bool ValidateFile(const std::ifstream& inputFile);
+void CalculateRoute(int N, Planets& planets);
+void PrintRoute(std::ostream& outputStream, Planets& planets);
+void ReadPlanets(std::istream& inputStream, int N, Planets& planets, FuelPosition prevFuelPosition);
 
 int main()
 {
@@ -35,108 +71,18 @@ int main()
 	inputFile >> N;
 
 	Planets planets;
+	planets.reserve(N);
 
-	for (size_t i = 0; i < N; ++i)
-	{
-		size_t planetFuel;
-		inputFile >> planetFuel;
-		planets.push_back({ planetFuel });
-	}
+	FuelPosition prevFuelPosition;
+	prevFuelPosition.reserve(N);
 
-	std::map<int, int> fuelState;
-	std::deque<Planet*> planetTrip;
-	planetTrip.push_back(&planets[0]);
-	planetTrip.front()->depth = 0;
-	fuelState[planets[0].fuel] += 1;
-	planetTrip.push_back(&planets[1]);
-	fuelState[planets[1].fuel] += 1;
-	size_t i = 2;
-	bool exitFlag = false;
+	ReadPlanets(inputFile, N, planets, prevFuelPosition);
 
-	while (!planetTrip.empty() && !exitFlag)
-	{
-		while (i < planets.size() && fuelState[planetTrip.front()->fuel] <= 1)
-		{
-			if (planetTrip.front()->fuel == planetTrip.back()->fuel && planetTrip.size() != 1)
-			{
-				break;
-			}
-			else if (planets[i].fuel == planetTrip.front()->fuel)
-			{
-				fuelState[planets[i].fuel] += 1;
-				planetTrip.push_back(&planets[i]);
-				++i;
-				break;
-			}
-			fuelState[planets[i].fuel] += 1;
-			planetTrip.push_back(&planets[i]);
-			++i;
-		}
-
-		bool isExist = fuelState[planetTrip.front()->fuel] > 1;
-		for (size_t j = 1; j < planetTrip.size() && isExist; ++j)
-		{
-			if (planetTrip.front()->depth + 1 < planetTrip[j]->depth)
-			{
-				planetTrip[j]->prevPosition = planetTrip.front() - &planets[0];
-				planetTrip[j]->depth = planetTrip.front()->depth + 1;
-			}
-			if (planetTrip.front()->fuel == planetTrip[j]->fuel)
-			{
-				break;
-			}
-		}
-
-		if (!planetTrip.empty())
-		{
-			fuelState[planetTrip.front()->fuel] -= 1;
-			planetTrip.pop_front();
-			if (!planetTrip.empty())
-			{
-				if (planetTrip.front()->prevPosition == -1)
-				{
-					exitFlag = true;
-				}
-			}
-		}
-
-		if (i == planets.size() && fuelState[planetTrip.back()->fuel] < 2)
-		{
-			break;
-		}
-	}
+	CalculateRoute(N, planets);
 
 	std::ofstream outputFile(OUTPUT_FILE_NAME);
 
-	if (planets[planets.size() - 1].prevPosition != -1)
-	{
-		std::deque<int> result;
-		int pos = planets[planets.size() - 1].prevPosition;
-		int lastPos = pos;
-
-		while (pos != -1)
-		{
-			result.push_front(pos);
-			pos = planets[pos].prevPosition;
-		}
-		outputFile << result.size() << std::endl;
-		for (auto& pos : result)
-		{
-			outputFile << pos + 1;
-			if (pos != lastPos)
-			{
-				outputFile << " ";
-			}
-			else
-			{
-				outputFile << std::endl;
-			}
-		}
-	}
-	else
-	{
-		outputFile << 0 << std::endl;
-	}
+	PrintRoute(outputFile, planets);
 
 	return 0;
 }
@@ -151,4 +97,117 @@ bool ValidateFile(const std::ifstream& inputFile)
 	}
 
 	return true;
+}
+
+int FindStopPlanet(int currPlanet, int nextPlanet, int N, Planets& planets, int prevCurrPlanet)
+{
+	int result = NO_NEXT_POSITION;
+	int farawayPlanet = NO_NEXT_POSITION;
+
+	if (nextPlanet == (N - 1))
+	{
+		planets[nextPlanet].prevPosition = currPlanet;
+
+		return result;
+	}
+
+	for (int pos = prevCurrPlanet; pos <= nextPlanet; ++pos)
+	{
+		if (farawayPlanet < planets[pos].nextPosition && planets[pos].reachable && pos != currPlanet)
+		{
+			planets[pos].prevPosition = currPlanet;
+			farawayPlanet = planets[pos].nextPosition;
+			result = pos;
+		}
+	}
+
+	return result;
+}
+
+void PrintRoute(std::ostream& outputStream, Planets& planets)
+{
+	if (planets[planets.size() - 1].prevPosition != NO_PREVIOUS_POSITION)
+	{
+		std::stack<int> results;
+		int pos = planets[planets.size() - 1].prevPosition;
+		int lastPos = pos;
+		results.push(pos);
+		while (pos != 0)
+		{
+			pos = planets[pos].prevPosition;
+			results.push(pos);
+		}
+		size_t length = results.size();
+		outputStream << length << std::endl;
+
+		for (size_t i = 0; i < length; ++i)
+		{
+			outputStream << results.top() + 1;
+			results.pop();
+			if (pos != lastPos)
+			{
+				outputStream << " ";
+			}
+			else
+			{
+				outputStream << std::endl;
+			}
+		}
+	}
+	else
+	{
+		outputStream << 0 << std::endl;
+	}
+
+	return;
+}
+
+void ReadPlanets(std::istream& inputStream, int N, Planets& planets, FuelPosition prevFuelPosition)
+{
+	for (int i = 0; i < N; ++i)
+	{
+		int planetFuel;
+		inputStream >> planetFuel;
+		planets.push_back({ planetFuel });
+
+		if (prevFuelPosition.find(planetFuel) != prevFuelPosition.end())
+		{
+			planets[prevFuelPosition[planetFuel]].nextPosition = i;
+		}
+		prevFuelPosition[planetFuel] = i;
+	}
+
+	return;
+}
+
+void CalculateRoute(int N, Planets& planets)
+{
+	int currPlanetPos = START_PLANET_POS;
+	int nextPlanetPos;
+	int prevCurrPlanetPos = START_PLANET_POS;
+
+	while (planets[N - 1].prevPosition == INT_MAX && planets[START_PLANET_POS].reachable)
+	{
+		nextPlanetPos = planets[currPlanetPos].nextPosition;
+		if (nextPlanetPos == NO_NEXT_POSITION)
+		{
+			planets[currPlanetPos].reachable = false;
+			currPlanetPos = planets[currPlanetPos].prevPosition;
+			prevCurrPlanetPos = currPlanetPos;
+			continue;
+		}
+		int stopPlanet = FindStopPlanet(currPlanetPos, nextPlanetPos, N, planets, prevCurrPlanetPos);
+
+		if (stopPlanet == NO_NEXT_POSITION)
+		{
+			break;
+		}
+		else
+		{
+			currPlanetPos = stopPlanet;
+			prevCurrPlanetPos = nextPlanetPos;
+		}
+	}
+
+	return;
 }
