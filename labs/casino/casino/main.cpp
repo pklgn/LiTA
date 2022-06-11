@@ -11,6 +11,7 @@ typedef std::vector<size_t> OperationSequence;
 
 bool ValidateFile(const std::ifstream& inputFile);
 void CalculateMaxExpenses(Accounts& accounts, OperationSequence& operationSequence);
+void PrintMaxExpenses(Accounts& accounts, OperationSequence& operationSequence);
 
 int main()
 {
@@ -36,13 +37,7 @@ int main()
 	OperationSequence resultSequence;
 	CalculateMaxExpenses(accounts, resultSequence);
 
-	std::cout << accounts[0] << std::endl;
-	for (auto& index : resultSequence)
-	{
-		std::cout << index + 1 << ' ';
-	}
-
-	std::cout << std::endl;
+	PrintMaxExpenses(accounts, resultSequence);
 
 	return 0;
 }
@@ -93,4 +88,17 @@ void CalculateMaxExpenses(Accounts& accounts, OperationSequence& operationSequen
 	{
 		Subtract(0, accounts, operationSequence);
 	}
+}
+
+void PrintMaxExpenses(Accounts& accounts, OperationSequence& operationSequence)
+{
+	std::ofstream outputFile(OUTPUT_FILE_NAME);
+
+	outputFile << accounts[0] << std::endl;
+	for (auto& index : operationSequence)
+	{
+		outputFile << index + 1 << ' ';
+	}
+
+	outputFile << std::endl;
 }
