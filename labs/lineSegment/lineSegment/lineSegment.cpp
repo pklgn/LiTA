@@ -1,6 +1,16 @@
-// lineSegment.cpp : This file contains the 'main' function. Program execution begins and ends there.
-//
+﻿/* 11.8. Пересечение отрезков (5)
+* Два отрезка на плоскости заданы целочисленными координатами своих концов в декартовой системе координат.
+* Требуется определить, существует ли у них общая точка.
+*
+* 
+* Стандарт C++ 17
+* Среда разработки: Visual Studio 2019, MSVC
+* ОС: Windows 10
+*
+* Выполнил: Ермаков Павел, ПС-21
+*/
 
+#include <limits>
 #include <fstream>
 #include <iostream>
 #include <optional>
@@ -9,11 +19,12 @@ const std::string INPUT_FILE_NAME = "INPUT.TXT";
 const std::string OUTPUT_FILE_NAME = "OUTPUT.TXT";
 
 constexpr int NO_POSITION = 0;
+constexpr long double ANY_VALUE = std::numeric_limits<long double>::infinity();
 
 struct Point
 {
-	double x;
-	double y;
+	long double x;
+	long double y;
 
 	friend std::ifstream& operator>>(std::ifstream& is, Point& point)
 	{
@@ -29,10 +40,13 @@ struct LineSegment
 	Point B;
 };
 
-typedef std::optional<double> Position;
+typedef std::optional<long double> Position;
 
 bool ValidateFile(const std::ifstream& inputFile);
-bool LineEquation(Point const& A, Point const& B, double x, Point& result);
+bool LineEquation(Point const& A, Point const& B, long double x, Point& result);
+Position GetXIntersectionPoint(LineSegment const& firstLineSegment, LineSegment const& secondLineSegment);
+bool BelongLineSegment(Point const& inspectedPoint, Point const& firstBorder, Point const& secondBorder);
+bool CalculateIntersectionPoint(LineSegment const& firstLineSegment, LineSegment const& secondLineSegment, Point& result);
 
 int main()
 {
@@ -53,36 +67,44 @@ int main()
 	LineSegment firstLineSegment{ A, B };
 	LineSegment secondLineSegment{ C, D };
 
-	Position xIntersection = GetXIntersectionPoint(firstLineSegment, secondLineSegment);
-	
-	if (!xIntersection.has_value())
+	bool intersectionExist = false;
+	Point result{ NO_POSITION, NO_POSITION };
+	std::ofstream outputFile(OUTPUT_FILE_NAME);
+	if (A.x == B.x)
 	{
-		std::cout << "No" << std::endl;
-
-		return 0;
+		result.x = A.x;
+		intersectionExist = CalculateIntersectionPoint(firstLineSegment, secondLineSegment, result);
 	}
-
-	Point result{ xIntersection.value(), NO_POSITION };
-	bool isComputable;
-	if (!isComputable)
+	else if (C.x == D.x)
 	{
-		std::cout << "No" << std::endl;
-
-		return 0;
+		result.x = C.x;
+		intersectionExist = CalculateIntersectionPoint(firstLineSegment, secondLineSegment, result);
 	}
-
-	if (result.y == NAN)
+	else
 	{
-		bool isComputable = LineEquation(secondLineSegment.A, secondLineSegment.B, result.x, result);
-		if (!isComputable && result.y == NAN)
+		Position xIntersection = GetXIntersectionPoint(firstLineSegment, secondLineSegment);
+
+		if (!xIntersection.has_value())
 		{
-			std::cout << "No" << std::endl;
+			outputFile << "No" << std::endl;
 
 			return 0;
 		}
+
+		result.x = xIntersection.value();
+		intersectionExist = CalculateIntersectionPoint(firstLineSegment, secondLineSegment, result);
 	}
 
+	if (intersectionExist &&
+		BelongLineSegment(result, A, B) &&
+		BelongLineSegment(result, C, D))
+	{
+		outputFile << "Yes" << std::endl;
 
+		return 0;
+	}
+
+	outputFile << "No" << std::endl;
 
 	return 0;
 }
@@ -101,25 +123,39 @@ bool ValidateFile(const std::ifstream& inputFile)
 
 Position GetXIntersectionPoint(LineSegment const& firstLineSegment, LineSegment const& secondLineSegment)
 {
-	int rightSide = firstLineSegment.A.x * (firstLineSegment.B.y - firstLineSegment.A.y) -
-					secondLineSegment.A.x * (secondLineSegment.B.y - secondLineSegment.A.y) +
-					secondLineSegment.A.y * (secondLineSegment.B.x - secondLineSegment.A.x) -
-					firstLineSegment.A.y * (firstLineSegment.B.x - firstLineSegment.A.x);
-	int leftSide = (firstLineSegment.B.y - firstLineSegment.A.y) - (secondLineSegment.B.y - secondLineSegment.A.y);
+	long double numerator = firstLineSegment.A.x * (firstLineSegment.A.y - firstLineSegment.B.y) / (firstLineSegment.A.x - firstLineSegment.B.x) - secondLineSegment.A.x * (secondLineSegment.A.y - secondLineSegment.B.y) / (secondLineSegment.A.x - secondLineSegment.B.x) - firstLineSegment.A.y + secondLineSegment.A.y;
+	long double denominator = (firstLineSegment.A.y - firstLineSegment.B.y) / (firstLineSegment.A.x - firstLineSegment.B.x) - (secondLineSegment.A.y - secondLineSegment.B.y) / (secondLineSegment.A.x - secondLineSegment.B.x);
 
-	if (leftSide == 0)
+	if (numerator == 0 && numerator == denominator)
+	{
+		bool among = BelongLineSegment(secondLineSegment.A, firstLineSegment.A, firstLineSegment.B);
+		if (among)
+		{
+			return secondLineSegment.A.x;
+		}
+		among = BelongLineSegment(secondLineSegment.B, firstLineSegment.A, firstLineSegment.B);
+		if (among)
+		{
+			return secondLineSegment.B.x;
+		}
+
+		return firstLineSegment.A.x;
+
+	}
+
+	if (denominator == 0)
 	{
 		return std::nullopt;
 	}
 
-	return rightSide / leftSide;
+	return numerator / denominator;
 }
 
-bool LineEquation(Point const& A, Point const& B, double x, Point& result)
+bool LineEquation(Point const& A, Point const& B, long double x, Point& result)
 {
 	if (B.x == A.x && B.x == x)
 	{
-		result.y = NAN;
+		result.y = ANY_VALUE;
 
 		return true;
 	}
@@ -134,7 +170,50 @@ bool LineEquation(Point const& A, Point const& B, double x, Point& result)
 	return true;
 }
 
-void CalculateLineSegmentsIntersection(LineSegment const& firstLineSegment, LineSegment const& secondLineSegment)
+bool BelongLineSegment(Point const& inspectedPoint, Point const& firstBorder, Point const& secondBorder)
 {
-	
+	return (inspectedPoint.x >= std::min(firstBorder.x, secondBorder.x) &&
+			inspectedPoint.x <= std::max(firstBorder.x, secondBorder.x) &&
+			inspectedPoint.y >= std::min(firstBorder.y, secondBorder.y) &&
+			inspectedPoint.y <= std::max(firstBorder.y, secondBorder.y));
+}
+
+bool CalculateIntersectionPoint(LineSegment const& firstLineSegment, LineSegment const& secondLineSegment, Point& result)
+{
+	bool isComputable = LineEquation(firstLineSegment.A, firstLineSegment.B, result.x, result);
+	if (!isComputable)
+	{
+		return false;
+	}
+
+	if (result.y == ANY_VALUE)
+	{
+		isComputable = LineEquation(secondLineSegment.A, secondLineSegment.B, result.x, result);
+		if (!isComputable)
+		{
+			return false;
+		}
+
+		if (result.y == ANY_VALUE)
+		{
+			bool among = BelongLineSegment(secondLineSegment.A, firstLineSegment.A, firstLineSegment.B);
+			if (among)
+			{
+				result.y = secondLineSegment.A.y;
+
+				return true;
+			}
+			among = BelongLineSegment(secondLineSegment.B, firstLineSegment.A, firstLineSegment.B);
+			if (among)
+			{
+				result.y = secondLineSegment.B.y;
+				
+				return true;
+			}
+
+			result.y = secondLineSegment.A.y;
+		}
+	}
+
+	return true;
 }
